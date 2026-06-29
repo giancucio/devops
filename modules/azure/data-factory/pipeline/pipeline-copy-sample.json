@@ -1,0 +1,31 @@
+{
+  "name": "pl_copy_sample",
+  "properties": {
+    "activities": [
+      {
+        "name": "CopySample",
+        "type": "Copy",
+        "inputs": [
+          {
+            "referenceName": "ds_blob_json_sample",
+            "type": "DatasetReference"
+          }
+        ],
+        "outputs": [
+          {
+            "referenceName": "ds_blob_json_sample",
+            "type": "DatasetReference"
+          }
+        ],
+        "typeProperties": {
+          "source": {
+            "type": "JsonSource"
+          },
+          "sink": {
+            "type": "JsonSink"
+          }
+        }
+      }
+    ]
+  }
+}

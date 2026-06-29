@@ -1,0 +1,13 @@
+name: Repository Check
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show structure
+        run: find . -maxdepth 4 -type f | sort | head -300

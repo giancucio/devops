@@ -1,0 +1,16 @@
+{
+  "name": "ds_blob_json_sample",
+  "properties": {
+    "linkedServiceName": {
+      "referenceName": "ls_storage_sample",
+      "type": "LinkedServiceReference"
+    },
+    "type": "Json",
+    "typeProperties": {
+      "location": {
+        "type": "AzureBlobStorageLocation",
+        "container": "data"
+      }
+    }
+  }
+}

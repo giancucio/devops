@@ -1,0 +1,12 @@
+name: Deploy Static Site
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sync to S3 and invalidate CloudFront
+        run: echo "aws s3 sync && aws cloudfront create-invalidation"

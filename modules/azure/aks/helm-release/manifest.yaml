@@ -1,0 +1,2 @@
+# Example Helm command
+# helm upgrade --install sample-app ./chart --namespace sample --create-namespace

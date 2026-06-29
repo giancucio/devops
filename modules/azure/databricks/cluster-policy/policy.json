@@ -1,0 +1,11 @@
+{
+  "spark_version": {
+    "type": "fixed",
+    "value": "13.3.x-scala2.12"
+  },
+  "num_workers": {
+    "type": "range",
+    "minValue": 1,
+    "maxValue": 4
+  }
+}

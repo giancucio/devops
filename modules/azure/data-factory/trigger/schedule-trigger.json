@@ -1,0 +1,20 @@
+{
+  "name": "tr_daily_sample",
+  "properties": {
+    "type": "ScheduleTrigger",
+    "typeProperties": {
+      "recurrence": {
+        "frequency": "Day",
+        "interval": 1
+      }
+    },
+    "pipelines": [
+      {
+        "pipelineReference": {
+          "referenceName": "pl_copy_sample",
+          "type": "PipelineReference"
+        }
+      }
+    ]
+  }
+}

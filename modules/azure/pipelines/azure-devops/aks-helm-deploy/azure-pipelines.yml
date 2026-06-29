@@ -1,0 +1,15 @@
+trigger:
+  branches:
+    include:
+      - main
+
+variables:
+  namespace: sample
+  releaseName: sample-app
+  chartPath: charts/sample-app
+
+steps:
+  - script: |
+      az aks get-credentials --resource-group rg-aks-dev --name aks-portfolio-dev --overwrite-existing
+      helm upgrade --install $(releaseName) $(chartPath) --namespace $(namespace) --create-namespace
+    displayName: Helm Deploy

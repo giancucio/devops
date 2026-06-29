@@ -1,0 +1,25 @@
+stages:
+  - validate
+  - plan
+
+variables:
+  TF_ROOT: "modules/aws/networking/vpc"
+  TF_IN_AUTOMATION: "true"
+
+default:
+  image: hashicorp/terraform:1.8
+
+terraform_validate:
+  stage: validate
+  script:
+    - cd "$TF_ROOT"
+    - terraform init
+    - terraform fmt -check
+    - terraform validate
+
+terraform_plan:
+  stage: plan
+  script:
+    - cd "$TF_ROOT"
+    - terraform init
+    - terraform plan

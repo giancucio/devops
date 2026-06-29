@@ -1,0 +1,12 @@
+name: Deploy ECS
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy ECS
+        run: echo "Build image, push to ECR, update ECS service"
