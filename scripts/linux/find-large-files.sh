@@ -1,7 +1,6 @@
-#!/usr/bin/env bash
-set -euo pipefail
+# Security
 
-SEARCH_PATH="${1:-.}"
-MIN_SIZE="${2:-100M}"
+If you discover a security vulnerability, please disclose it privately to the repository owner.
 
-find "$SEARCH_PATH" -type f -size +"$MIN_SIZE" -exec ls -lh {} \; | awk '{ print $9 ": " $5 }'
+Do not commit secrets into the repository. Use tools like `git-secrets` or a secret scanning CI job.
+

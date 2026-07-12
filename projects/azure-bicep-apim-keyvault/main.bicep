@@ -1,16 +1,6 @@
-targetScope = 'resourceGroup'
+# Security
 
-module keyVault '../../modules/azure/security/key-vault/main.bicep' = {
-  name: 'keyVault'
-  params: {
-    keyVaultName: 'kvportfolio001'
-  }
-}
+If you discover a security vulnerability, please disclose it privately to the repository owner.
 
-module apim '../../modules/azure/integration/api-management/main.bicep' = {
-  name: 'apim'
-  params: {
-    apimName: 'apim-portfolio-dev'
-    publisherEmail: 'devops@example.com'
-  }
-}
+Do not commit secrets into the repository. Use tools like `git-secrets` or a secret scanning CI job.
+

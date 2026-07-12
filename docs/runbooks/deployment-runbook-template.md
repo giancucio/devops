@@ -1,24 +1,6 @@
-# Deployment Runbook Template
+# Security
 
-## Component
+If you discover a security vulnerability, please disclose it privately to the repository owner.
 
-## Environment
+Do not commit secrets into the repository. Use tools like `git-secrets` or a secret scanning CI job.
 
-## Pre-deployment Checks
-
-- [ ] PR approved
-- [ ] Plan/what-if reviewed
-- [ ] Secrets confirmed
-- [ ] Rollback plan confirmed
-
-## Deployment Steps
-
-1. Validate.
-2. Plan or what-if.
-3. Deploy.
-4. Smoke test.
-5. Monitor.
-
-## Rollback
-
-Document rollback here.

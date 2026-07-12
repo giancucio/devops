@@ -1,11 +1,6 @@
-#!/usr/bin/env bash
-set -euo pipefail
+# Security
 
-PROJECT_ID="${1:?Usage: ./trigger-pipeline.sh <project-id> <branch>}"
-BRANCH="${2:-main}"
-TOKEN="${GITLAB_TRIGGER_TOKEN:?Set GITLAB_TRIGGER_TOKEN first}"
+If you discover a security vulnerability, please disclose it privately to the repository owner.
 
-curl --request POST \
-  --form token="$TOKEN" \
-  --form ref="$BRANCH" \
-  "https://gitlab.com/api/v4/projects/$PROJECT_ID/trigger/pipeline"
+Do not commit secrets into the repository. Use tools like `git-secrets` or a secret scanning CI job.
+

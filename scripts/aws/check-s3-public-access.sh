@@ -1,6 +1,6 @@
-#!/usr/bin/env bash
-set -euo pipefail
+# Security
 
-BUCKET="${1:?Usage: ./check-s3-public-access.sh <bucket>}"
+If you discover a security vulnerability, please disclose it privately to the repository owner.
 
-aws s3api get-public-access-block --bucket "$BUCKET" --output table
+Do not commit secrets into the repository. Use tools like `git-secrets` or a secret scanning CI job.
+

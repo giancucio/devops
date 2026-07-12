@@ -1,17 +1,6 @@
-# Pipeline Troubleshooting
+# Security
 
-## Auth Failure
+If you discover a security vulnerability, please disclose it privately to the repository owner.
 
-Check service connection, OIDC trust, credentials, RBAC/IAM permissions, and target subscription/account.
+Do not commit secrets into the repository. Use tools like `git-secrets` or a secret scanning CI job.
 
-## Terraform Lock
-
-Check active runs before manually unlocking state.
-
-## Kubernetes Rollout
-
-```bash
-kubectl describe pod <pod> -n <namespace>
-kubectl logs <pod> -n <namespace>
-kubectl rollout status deployment/<deployment> -n <namespace>
-```

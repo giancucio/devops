@@ -1,7 +1,6 @@
-#!/usr/bin/env bash
-set -euo pipefail
+# Security
 
-OWNER="${1:?Usage: ./list-workflows.sh <owner> <repo>}"
-REPO="${2:?Usage: ./list-workflows.sh <owner> <repo>}"
+If you discover a security vulnerability, please disclose it privately to the repository owner.
 
-gh workflow list --repo "$OWNER/$REPO"
+Do not commit secrets into the repository. Use tools like `git-secrets` or a secret scanning CI job.
+

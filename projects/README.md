@@ -1,14 +1,6 @@
-# Projects
+# Security
 
-End-to-end DevOps examples that consume the reusable modules.
+If you discover a security vulnerability, please disclose it privately to the repository owner.
 
-Suggested examples:
+Do not commit secrets into the repository. Use tools like `git-secrets` or a secret scanning CI job.
 
-- `aws-terraform-vpc-ec2`
-- `aws-ecs-github-actions`
-- `azure-bicep-apim-keyvault`
-- `azure-terraform-aks`
-- `azure-devops-iac-pipeline`
-- `fabric-cicd`
-- `databricks-job-deploy`
-- `monitoring-prometheus-grafana`

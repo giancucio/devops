@@ -1,18 +1,6 @@
-# Terraform Module Template
+# Security
 
-This template demonstrates a minimal Terraform module layout.
+If you discover a security vulnerability, please disclose it privately to the repository owner.
 
-Files:
-- `main.tf` - primary resources
-- `variables.tf` - module inputs
-- `outputs.tf` - module outputs
-- `versions.tf` - required provider versions
+Do not commit secrets into the repository. Use tools like `git-secrets` or a secret scanning CI job.
 
-Usage:
-
-```
-module "example" {
-  source = "../.."
-  name = "example"
-}
-```

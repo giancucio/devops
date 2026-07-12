@@ -1,10 +1,6 @@
-<!-- Describe the change and why it matters -->
+# Security
 
-## Summary
+If you discover a security vulnerability, please disclose it privately to the repository owner.
 
-<!-- What changed -->
+Do not commit secrets into the repository. Use tools like `git-secrets` or a secret scanning CI job.
 
-## Checklist
-- [ ] Tests or validation added where applicable
-- [ ] Documentation updated
-- [ ] No secrets committed

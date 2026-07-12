@@ -1,0 +1,1069 @@
+from pathlib import Path
+import json
+
+base = Path('infrastructure/bicep/azure')
+
+module_defs = {
+    'ai/ai-search': {
+        'title': 'Azure Cognitive Search',
+        'description': 'Deploys an Azure Cognitive Search service for indexing and search workloads.',
+        'resource_type': 'Microsoft.Search/searchServices',
+        'api_version': '2023-05-01',
+        'params': [
+            ('searchServiceName', 'string', 'search-portfolio', 'Search service name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+            ('skuName', 'string', 'standard', 'Search service SKU'),
+            ('replicaCount', 'int', 1, 'Number of replicas'),
+            ('partitionCount', 'int', 1, 'Number of partitions'),
+        ],
+        'properties': {'sku': {'name': 'standard', 'tier': 'standard'}},
+        'outputs': [('searchServiceId', 'string', 'searchService.id')],
+    },
+    'ai/azure-openai': {
+        'title': 'Azure OpenAI Service',
+        'description': 'Deploys an Azure OpenAI resource for generative AI workloads.',
+        'resource_type': 'Microsoft.CognitiveServices/accounts',
+        'api_version': '2021-10-01',
+        'params': [
+            ('accountName', 'string', 'openai-portfolio', 'OpenAI account name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+            ('skuName', 'string', 'S0', 'Service SKU'),
+        ],
+        'resource_fields': {
+            'kind': 'OpenAI',
+            'sku': {'name': 'S0', 'tier': 'Standard'},
+            'properties': {'publicNetworkAccess': 'Enabled'},
+        },
+        'outputs': [('accountId', 'string', None)],
+    },
+    'ai/bot-service': {
+        'title': 'Azure Bot Service',
+        'description': 'Deploys an Azure Bot Service resource for conversational applications.',
+        'resource_type': 'Microsoft.BotService/botServices',
+        'api_version': '2021-05-01',
+        'params': [
+            ('botName', 'string', 'bot-portfolio', 'Bot service name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+            ('appId', 'string', '', 'Application (client) ID for the bot'),
+        ],
+        'properties': {'developerAppInsightKey': ''},
+        'outputs': [('botId', 'string', 'bot.id')],
+    },
+    'ai/cognitive-services-account': {
+        'title': 'Cognitive Services Account',
+        'description': 'Deploys an Azure Cognitive Services account for AI workloads.',
+        'resource_type': 'Microsoft.CognitiveServices/accounts',
+        'api_version': '2021-10-01',
+        'resource_fields': {
+            'kind': 'CognitiveServices',
+            'sku': {'name': 'S0', 'tier': 'Standard'},
+            'properties': {'publicNetworkAccess': 'Enabled'},
+        },
+        'params': [
+            ('accountName', 'string', 'cogsvc-portfolio', 'Cognitive Services account name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+            ('skuName', 'string', 'S0', 'SKU name'),
+        ],
+        'outputs': [('accountId', 'string', None)],
+    },
+    'ai/document-intelligence': {
+        'title': 'Document Intelligence',
+        'description': 'Deploys a Document Intelligence resource for form and document processing.',
+        'resource_type': 'Microsoft.CognitiveServices/accounts',
+        'api_version': '2021-10-01',
+        'resource_fields': {
+            'kind': 'FormRecognizer',
+            'sku': {'name': 'S0', 'tier': 'Standard'},
+            'properties': {'publicNetworkAccess': 'Enabled'},
+        },
+        'params': [
+            ('accountName', 'string', 'docintel-portfolio', 'Document Intelligence account name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+        ],
+        'outputs': [('resourceId', 'string', None)],
+    },
+    'ai/language-service': {
+        'title': 'Azure Language Service',
+        'description': 'Deploys an Azure Language service resource for natural language workloads.',
+        'resource_type': 'Microsoft.CognitiveServices/accounts',
+        'api_version': '2021-10-01',
+        'resource_fields': {
+            'kind': 'LanguageService',
+            'sku': {'name': 'S1', 'tier': 'Standard'},
+            'properties': {'publicNetworkAccess': 'Enabled'},
+        },
+        'params': [
+            ('accountName', 'string', 'langsvc-portfolio', 'Language service account name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+        ],
+        'outputs': [('resourceId', 'string', None)],
+    },
+    'ai/machine-learning-workspace': {
+        'title': 'Machine Learning Workspace',
+        'description': 'Deploys an Azure Machine Learning workspace for ML development and training.',
+        'resource_type': 'Microsoft.MachineLearningServices/workspaces',
+        'api_version': '2023-04-01',
+        'params': [
+            ('workspaceName', 'string', 'mlws-portfolio', 'ML workspace name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+        ],
+        'outputs': [('workspaceId', 'string', 'mlWorkspace.id')],
+    },
+    'ai/speech-service': {
+        'title': 'Speech Service',
+        'description': 'Deploys an Azure Speech service resource for speech-to-text and text-to-speech.',
+        'resource_type': 'Microsoft.CognitiveServices/accounts',
+        'api_version': '2021-10-01',
+        'params': [
+            ('accountName', 'string', 'speech-portfolio', 'Speech service account name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+        ],
+        'properties': {'kind': 'SpeechServices', 'properties': {'publicNetworkAccess': 'Enabled'}},
+        'outputs': [('serviceId', 'string', 'speechService.id')],
+    },
+    'aks/aks-cluster': {
+        'title': 'AKS Cluster',
+        'description': 'Deploys an Azure Kubernetes Service (AKS) cluster for container orchestration.',
+        'resource_type': 'Microsoft.ContainerService/managedClusters',
+        'api_version': '2024-01-01',
+        'params': [
+            ('clusterName', 'string', 'aks-portfolio', 'AKS cluster name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+            ('nodeCount', 'int', 3, 'Default node count'),
+            ('nodeVmSize', 'string', 'Standard_DS2_v2', 'Node VM size'),
+        ],
+        'properties': {'dnsPrefix': 'aks', 'agentPoolProfiles': []},
+        'outputs': [('clusterId', 'string', 'aksCluster.id')],
+    },
+    'aks/node-pool': {
+        'title': 'AKS Node Pool',
+        'description': 'Deploys a node pool into an existing AKS cluster.',
+        'resource_type': 'Microsoft.ContainerService/managedClusters/agentPools',
+        'api_version': '2024-02-01',
+        'params': [
+            ('clusterName', 'string', 'aks-portfolio', 'Existing AKS cluster name'),
+            ('nodePoolName', 'string', 'default', 'AKS node pool name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+            ('count', 'int', 3, 'Number of nodes in the pool'),
+        ],
+        'name_template': "'${clusterName}/${nodePoolName}'",
+        'outputs': [('nodePoolId', 'string', 'nodePool.id')],
+    },
+    'compute/aks': {
+        'title': 'AKS Cluster (Compute)',
+        'description': 'Deploys an AKS cluster as a compute platform.',
+        'resource_type': 'Microsoft.ContainerService/managedClusters',
+        'api_version': '2024-01-01',
+        'params': [
+            ('clusterName', 'string', 'aks-portfolio', 'AKS cluster name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+            ('dnsPrefix', 'string', 'aks', 'AKS DNS prefix'),
+        ],
+        'outputs': [('clusterId', 'string', 'aksCluster.id')],
+    },
+    'compute/app-service': {
+        'title': 'App Service',
+        'description': 'Deploys an Azure App Service web app.',
+        'resource_type': 'Microsoft.Web/sites',
+        'api_version': '2022-03-01',
+        'params': [
+            ('appName', 'string', 'app-portfolio', 'App Service name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+            ('servicePlanId', 'string', 'service-plan-id', 'App Service plan resource ID'),
+        ],
+        'outputs': [('appId', 'string', 'app.id')],
+    },
+    'compute/app-service-plan': {
+        'title': 'App Service Plan',
+        'description': 'Deploys an Azure App Service plan for web apps and functions.',
+        'resource_type': 'Microsoft.Web/serverfarms',
+        'api_version': '2022-03-01',
+        'params': [
+            ('planName', 'string', 'asp-portfolio', 'App Service plan name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+            ('skuName', 'string', 'P1v2', 'App Service plan SKU'),
+        ],
+        'outputs': [('planId', 'string', 'appServicePlan.id')],
+    },
+    'compute/container-app': {
+        'title': 'Container App',
+        'description': 'Deploys an Azure Container App for containerized workloads.',
+        'resource_type': 'Microsoft.App/containerApps',
+        'api_version': '2024-01-01-preview',
+        'params': [
+            ('containerAppName', 'string', 'ca-portfolio', 'Container App name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+            ('environmentId', 'string', 'container-app-env-id', 'Container Apps environment resource ID'),
+        ],
+        'outputs': [('containerAppId', 'string', 'containerApp.id')],
+    },
+    'compute/function-app': {
+        'title': 'Function App',
+        'description': 'Deploys an Azure Function App for serverless workloads.',
+        'resource_type': 'Microsoft.Web/sites',
+        'api_version': '2022-03-01',
+        'properties': {'kind': 'functionapp'},
+        'params': [
+            ('functionName', 'string', 'func-portfolio', 'Function App name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+            ('servicePlanId', 'string', 'service-plan-id', 'App Service plan resource ID'),
+        ],
+        'outputs': [('functionId', 'string', 'functionApp.id')],
+    },
+    'compute/virtual-machine': {
+        'title': 'Virtual Machine',
+        'description': 'Deploys an Azure Virtual Machine.',
+        'resource_type': 'Microsoft.Compute/virtualMachines',
+        'api_version': '2024-04-01',
+        'params': [
+            ('vmName', 'string', 'vm-portfolio', 'Virtual machine name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+            ('vmSize', 'string', 'Standard_DS1_v2', 'VM size'),
+            ('adminUsername', 'string', 'azureuser', 'Administrator username'),
+        ],
+        'outputs': [('vmId', 'string', 'vm.id')],
+    },
+    'compute/vm-scale-set': {
+        'title': 'Virtual Machine Scale Set',
+        'description': 'Deploys an Azure Virtual Machine Scale Set.',
+        'resource_type': 'Microsoft.Compute/virtualMachineScaleSets',
+        'api_version': '2024-04-01',
+        'params': [
+            ('vmssName', 'string', 'vmss-portfolio', 'Scale set name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+            ('instanceCount', 'int', 2, 'Scale set instance count'),
+        ],
+        'outputs': [('vmssId', 'string', 'vmss.id')],
+    },
+    'data/cosmos-db': {
+        'title': 'Cosmos DB Account',
+        'description': 'Deploys an Azure Cosmos DB account for globally distributed data storage.',
+        'resource_type': 'Microsoft.DocumentDB/databaseAccounts',
+        'api_version': '2023-03-15',
+        'params': [
+            ('accountName', 'string', 'cosmos-portfolio', 'Cosmos DB account name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+            ('databaseName', 'string', 'db1', 'Initial database name'),
+        ],
+        'properties': {'locations': [{'locationName': 'eastus', 'failoverPriority': 0}]},
+        'outputs': [('accountId', 'string', 'cosmos.id')],
+    },
+    'data/data-factory': {
+        'title': 'Data Factory',
+        'description': 'Deploys an Azure Data Factory instance.',
+        'resource_type': 'Microsoft.DataFactory/factories',
+        'api_version': '2023-03-01',
+        'params': [
+            ('factoryName', 'string', 'adf-portfolio', 'Data Factory name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+        ],
+        'outputs': [('factoryId', 'string', 'dataFactory.id')],
+    },
+    'data/databricks-workspace': {
+        'title': 'Databricks Workspace',
+        'description': 'Deploys an Azure Databricks workspace.',
+        'resource_type': 'Microsoft.Databricks/workspaces',
+        'api_version': '2023-04-01',
+        'params': [
+            ('workspaceName', 'string', 'dbws-portfolio', 'Databricks workspace name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+        ],
+        'outputs': [('workspaceId', 'string', 'dbWorkspace.id')],
+    },
+    'data/fabric-workspace': {
+        'title': 'Fabric Workspace',
+        'description': 'Deploys an Azure Fabric workspace for analytics and data workloads.',
+        'resource_type': 'Microsoft.Fabric/workspaces',
+        'api_version': '2024-01-01-preview',
+        'params': [
+            ('workspaceName', 'string', 'fabric-portfolio', 'Fabric workspace name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+        ],
+        'outputs': [('workspaceId', 'string', 'fabricWorkspace.id')],
+    },
+    'data/file-share': {
+        'title': 'Storage File Share',
+        'description': 'Deploys a file share inside an existing Storage account.',
+        'resource_type': 'Microsoft.Storage/storageAccounts/fileServices/shares',
+        'api_version': '2022-09-01',
+        'name_template': "'${storageAccountName}/default/${shareName}'",
+        'params': [
+            ('storageAccountName', 'string', 'stgacctportfolio', 'Storage account name'),
+            ('shareName', 'string', 'fileshare', 'File share name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+        ],
+        'outputs': [('shareId', 'string', 'fileShare.id')],
+    },
+    'data/postgresql-flexible-server': {
+        'title': 'PostgreSQL Flexible Server',
+        'description': 'Deploys an Azure Database for PostgreSQL flexible server.',
+        'resource_type': 'Microsoft.DBForPostgreSQL/flexibleServers',
+        'api_version': '2023-03-01-preview',
+        'params': [
+            ('serverName', 'string', 'pgflex-portfolio', 'PostgreSQL server name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+            ('administratorLogin', 'string', 'pgadmin', 'Administrator login'),
+        ],
+        'outputs': [('serverId', 'string', 'pgServer.id')],
+    },
+    'data/redis-cache': {
+        'title': 'Redis Cache',
+        'description': 'Deploys an Azure Redis Cache instance.',
+        'resource_type': 'Microsoft.Cache/Redis',
+        'api_version': '2023-03-01',
+        'params': [
+            ('redisName', 'string', 'redis-portfolio', 'Redis cache name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+            ('skuName', 'string', 'Standard', 'Redis SKU name'),
+        ],
+        'outputs': [('redisId', 'string', 'redis.id')],
+    },
+    'data/sql-database': {
+        'title': 'SQL Database',
+        'description': 'Deploys an Azure SQL Database in a SQL server.',
+        'resource_type': 'Microsoft.Sql/servers/databases',
+        'api_version': '2022-02-01-preview',
+        'name_template': "'${sqlServerName}/${databaseName}'",
+        'params': [
+            ('sqlServerName', 'string', 'sqlserverportfolio', 'Existing SQL server name'),
+            ('databaseName', 'string', 'sqldb', 'SQL database name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+        ],
+        'outputs': [('databaseId', 'string', 'sqlDatabase.id')],
+    },
+    'data/storage-account': {
+        'title': 'Storage Account',
+        'description': 'Deploys an Azure Storage account.',
+        'resource_type': 'Microsoft.Storage/storageAccounts',
+        'api_version': '2023-01-01',
+        'params': [
+            ('storageAccountName', 'string', 'stgacctportfolio', 'Storage account name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+            ('skuName', 'string', 'Standard_LRS', 'Storage SKU'),
+        ],
+        'outputs': [('storageAccountId', 'string', 'storageAccount.id')],
+    },
+    'data/storage-container': {
+        'title': 'Storage Container',
+        'description': 'Deploys a blob container inside an existing Storage account.',
+        'resource_type': 'Microsoft.Storage/storageAccounts/blobServices/containers',
+        'api_version': '2022-09-01',
+        'name_template': "'${storageAccountName}/default/${containerName}'",
+        'params': [
+            ('storageAccountName', 'string', 'stgacctportfolio', 'Storage account name'),
+            ('containerName', 'string', 'data', 'Blob container name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+        ],
+        'outputs': [('containerId', 'string', 'container.id')],
+    },
+    'data-factory/data-factory': {
+        'title': 'Data Factory Instance',
+        'description': 'Deploys an Azure Data Factory factory instance.',
+        'resource_type': 'Microsoft.DataFactory/factories',
+        'api_version': '2023-03-01',
+        'params': [
+            ('factoryName', 'string', 'adf-portfolio', 'Data Factory name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+        ],
+        'outputs': [('factoryId', 'string', 'factory.id')],
+    },
+    'data-factory/integration-runtime': {
+        'title': 'Integration Runtime',
+        'description': 'Deploys an Azure Data Factory integration runtime.',
+        'resource_type': 'Microsoft.DataFactory/factories/integrationRuntimes',
+        'api_version': '2023-03-01',
+        'name_template': "'${factoryName}/${integrationRuntimeName}'",
+        'params': [
+            ('factoryName', 'string', 'adf-portfolio', 'Existing Data Factory name'),
+            ('integrationRuntimeName', 'string', 'selfhosted', 'Integration Runtime name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+        ],
+        'outputs': [('runtimeId', 'string', 'integrationRuntime.id')],
+    },
+    'data-factory/managed-private-endpoint': {
+        'title': 'Managed Private Endpoint',
+        'description': 'Deploys a managed private endpoint in Azure Data Factory.',
+        'resource_type': 'Microsoft.DataFactory/factories/managedPrivateEndpoints',
+        'api_version': '2023-03-01',
+        'name_template': "'${factoryName}/${endpointName}'",
+        'params': [
+            ('factoryName', 'string', 'adf-portfolio', 'Existing Data Factory name'),
+            ('endpointName', 'string', 'mpe-portfolio', 'Managed private endpoint name'),
+            ('privateLinkResourceId', 'string', '/subscriptions/.../resourceGroups/.../providers/Microsoft.Storage/storageAccounts/...', 'Target resource ID'),
+        ],
+        'outputs': [('endpointId', 'string', 'managedPrivateEndpoint.id')],
+    },
+    'databricks/access-connector': {
+        'title': 'Databricks Access Connector',
+        'description': 'Deploys a Databricks access connector for secure private connectivity.',
+        'resource_type': 'Microsoft.Databricks/workspaces/accessConnectors',
+        'api_version': '2023-04-01',
+        'name_template': "'${workspaceName}/${connectorName}'",
+        'params': [
+            ('workspaceName', 'string', 'databricks-portfolio', 'Existing Databricks workspace name'),
+            ('connectorName', 'string', 'access-connector', 'Access connector name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+        ],
+        'outputs': [('connectorId', 'string', 'accessConnector.id')],
+    },
+    'databricks/workspace': {
+        'title': 'Databricks Workspace',
+        'description': 'Deploys an Azure Databricks workspace for analytics and notebooks.',
+        'resource_type': 'Microsoft.Databricks/workspaces',
+        'api_version': '2023-04-01',
+        'params': [
+            ('workspaceName', 'string', 'databricks-portfolio', 'Databricks workspace name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+        ],
+        'outputs': [('workspaceId', 'string', 'workspace.id')],
+    },
+    'foundation/management-lock': {
+        'title': 'Management Lock',
+        'description': 'Applies a management lock to protect resources from accidental deletion or updates.',
+        'resource_type': 'Microsoft.Authorization/locks',
+        'api_version': '2022-04-01',
+        'params': [
+            ('lockName', 'string', 'readOnlyLock', 'Lock name'),
+            ('lockLevel', 'string', 'CanNotDelete', 'Lock level'),
+            ('notes', 'string', 'Protect resource', 'Lock notes'),
+        ],
+        'outputs': [('lockId', 'string', 'resourceLock.id')],
+    },
+    'foundation/policy-assignment': {
+        'title': 'Policy Assignment',
+        'description': 'Assigns a policy definition to a scope to enforce governance.',
+        'resource_type': 'Microsoft.Authorization/policyAssignments',
+        'api_version': '2022-01-01-preview',
+        'params': [
+            ('assignmentName', 'string', 'policyAssignment', 'Policy assignment name'),
+            ('policyDefinitionId', 'string', '/subscriptions/.../providers/Microsoft.Authorization/policyDefinitions/...', 'Policy definition resource ID'),
+            ('scope', 'string', '/subscriptions/<subscriptionId>', 'Assignment scope'),
+        ],
+        'outputs': [('assignmentId', 'string', 'policyAssignment.id')],
+    },
+    'foundation/resource-group': {
+        'title': 'Resource Group',
+        'description': 'Deploys a new Azure resource group.',
+        'resource_type': 'Microsoft.Resources/resourceGroups',
+        'api_version': '2021-04-01',
+        'params': [
+            ('resourceGroupName', 'string', 'rg-portfolio', 'Resource group name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+        ],
+        'outputs': [('resourceGroupId', 'string', 'resourceGroup.id')],
+    },
+    'foundation/role-assignment': {
+        'title': 'Role Assignment',
+        'description': 'Creates an Azure RBAC role assignment for a principal.',
+        'resource_type': 'Microsoft.Authorization/roleAssignments',
+        'api_version': '2022-04-01-preview',
+        'params': [
+            ('principalId', 'string', '00000000-0000-0000-0000-000000000000', 'Principal object ID'),
+            ('roleDefinitionId', 'string', '/subscriptions/.../providers/Microsoft.Authorization/roleDefinitions/...', 'Role definition resource ID'),
+            ('scope', 'string', '/subscriptions/<subscriptionId>', 'Assignment scope'),
+        ],
+        'name_template': "guid(resourceGroup().id, principalId, roleDefinitionId)",
+        'outputs': [('roleAssignmentId', 'string', 'roleAssignment.id')],
+    },
+    'integration/api-management': {
+        'title': 'API Management Service',
+        'description': 'Deploys an Azure API Management service instance.',
+        'resource_type': 'Microsoft.ApiManagement/service',
+        'api_version': '2022-08-01',
+        'params': [
+            ('serviceName', 'string', 'apim-portfolio', 'API Management service name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+            ('publisherEmail', 'string', 'admin@example.com', 'Publisher email'),
+            ('publisherName', 'string', 'Contoso', 'Publisher name'),
+        ],
+        'outputs': [('serviceId', 'string', 'apiManagementService.id')],
+    },
+    'integration/apim-api': {
+        'title': 'API Management API',
+        'description': 'Deploys an API into an existing Azure API Management service.',
+        'resource_type': 'Microsoft.ApiManagement/service/apis',
+        'api_version': '2022-08-01',
+        'name_template': "'${apiManagementName}/${apiName}'",
+        'params': [
+            ('apiManagementName', 'string', 'apim-portfolio', 'Existing API Management service name'),
+            ('apiName', 'string', 'example-api', 'API name'),
+            ('displayName', 'string', 'Example API', 'API display name'),
+        ],
+        'outputs': [('apiId', 'string', 'api.id')],
+    },
+    'integration/apim-backend': {
+        'title': 'API Management Backend',
+        'description': 'Deploys an APIM backend for API configuration.',
+        'resource_type': 'Microsoft.ApiManagement/service/backends',
+        'api_version': '2022-08-01',
+        'name_template': "'${apiManagementName}/${backendName}'",
+        'params': [
+            ('apiManagementName', 'string', 'apim-portfolio', 'Existing API Management service name'),
+            ('backendName', 'string', 'backend-portfolio', 'Backend name'),
+            ('backendUrl', 'string', 'https://example.com', 'Backend URL'),
+        ],
+        'outputs': [('backendId', 'string', 'backend.id')],
+    },
+    'integration/apim-named-value': {
+        'title': 'API Management Named Value',
+        'description': 'Deploys an APIM named value for reusable configuration values.',
+        'resource_type': 'Microsoft.ApiManagement/service/namedValues',
+        'api_version': '2022-08-01',
+        'name_template': "'${apiManagementName}/${namedValueName}'",
+        'params': [
+            ('apiManagementName', 'string', 'apim-portfolio', 'Existing API Management service name'),
+            ('namedValueName', 'string', 'example-value', 'Named value name'),
+            ('value', 'string', 'example', 'Named value secret or string'),
+        ],
+        'outputs': [('namedValueId', 'string', 'namedValue.id')],
+    },
+    'integration/apim-policy': {
+        'title': 'API Management Policy',
+        'description': 'Deploys an APIM policy at service scope.',
+        'resource_type': 'Microsoft.ApiManagement/service/policies',
+        'api_version': '2022-08-01',
+        'name_template': "'${apiManagementName}/policy'",
+        'params': [
+            ('apiManagementName', 'string', 'apim-portfolio', 'Existing API Management service name'),
+            ('policyContent', 'string', '<policies></policies>', 'APIM policy XML content'),
+        ],
+        'outputs': [('policyId', 'string', 'policy.id')],
+    },
+    'integration/apim-product': {
+        'title': 'API Management Product',
+        'description': 'Deploys a product in Azure API Management.',
+        'resource_type': 'Microsoft.ApiManagement/service/products',
+        'api_version': '2022-08-01',
+        'name_template': "'${apiManagementName}/${productName}'",
+        'params': [
+            ('apiManagementName', 'string', 'apim-portfolio', 'Existing API Management service name'),
+            ('productName', 'string', 'starter', 'Product name'),
+            ('displayName', 'string', 'Starter', 'Product display name'),
+        ],
+        'outputs': [('productId', 'string', 'product.id')],
+    },
+    'integration/event-grid': {
+        'title': 'Event Grid Topic',
+        'description': 'Deploys an Azure Event Grid topic for event publishing.',
+        'resource_type': 'Microsoft.EventGrid/topics',
+        'api_version': '2024-06-01',
+        'params': [
+            ('topicName', 'string', 'eventgrid-topic', 'Event Grid topic name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+        ],
+        'outputs': [('topicId', 'string', 'eventGridTopic.id')],
+    },
+    'integration/event-hub': {
+        'title': 'Event Hubs Namespace',
+        'description': 'Deploys an Azure Event Hubs namespace.',
+        'resource_type': 'Microsoft.EventHub/namespaces',
+        'api_version': '2023-04-01',
+        'params': [
+            ('namespaceName', 'string', 'eventhub-namespace', 'Event Hubs namespace name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+        ],
+        'outputs': [('namespaceId', 'string', 'eventHubNamespace.id')],
+    },
+    'integration/logic-app': {
+        'title': 'Logic App Workflow',
+        'description': 'Deploys an Azure Logic Apps workflow.',
+        'resource_type': 'Microsoft.Logic/workflows',
+        'api_version': '2019-05-01',
+        'params': [
+            ('workflowName', 'string', 'logicapp-portfolio', 'Logic App workflow name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+        ],
+        'outputs': [('workflowId', 'string', 'logicApp.id')],
+    },
+    'integration/service-bus': {
+        'title': 'Service Bus Namespace',
+        'description': 'Deploys an Azure Service Bus namespace for messaging workloads.',
+        'resource_type': 'Microsoft.ServiceBus/namespaces',
+        'api_version': '2023-05-01',
+        'params': [
+            ('namespaceName', 'string', 'sb-portfolio', 'Service Bus namespace name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+            ('skuName', 'string', 'Standard', 'Service Bus SKU'),
+        ],
+        'outputs': [('namespaceId', 'string', 'serviceBusNamespace.id')],
+    },
+    'monitoring/action-group': {
+        'title': 'Action Group',
+        'description': 'Deploys an Azure Monitor action group for alert notifications.',
+        'resource_type': 'Microsoft.Insights/actionGroups',
+        'api_version': '2022-06-15',
+        'params': [
+            ('actionGroupName', 'string', 'ag-portfolio', 'Action Group name'),
+            ('shortName', 'string', 'ag', 'Action Group short name'),
+            ('location', 'string', 'global', 'Resource location (usually global)'),
+        ],
+        'outputs': [('actionGroupId', 'string', 'actionGroup.id')],
+    },
+    'monitoring/activity-log-alert': {
+        'title': 'Activity Log Alert',
+        'description': 'Deploys an Azure Activity Log alert to monitor subscription events.',
+        'resource_type': 'Microsoft.Insights/activityLogAlerts',
+        'api_version': '2017-04-01',
+        'params': [
+            ('alertName', 'string', 'activityLogAlert', 'Activity log alert name'),
+            ('scope', 'string', '/subscriptions/<subscriptionId>', 'Alert scope'),
+        ],
+        'outputs': [('alertId', 'string', 'activityLogAlert.id')],
+    },
+    'monitoring/application-insights': {
+        'title': 'Application Insights',
+        'description': 'Deploys an Application Insights resource for telemetry.',
+        'resource_type': 'Microsoft.Insights/components',
+        'api_version': '2022-06-15',
+        'params': [
+            ('componentName', 'string', 'appinsights-portfolio', 'Application Insights name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+            ('applicationType', 'string', 'web', 'Application type'),
+        ],
+        'outputs': [('componentId', 'string', 'appInsights.id')],
+    },
+    'monitoring/container-insights': {
+        'title': 'Container Insights',
+        'description': 'Deploys a Log Analytics workspace for Azure Monitor Container Insights.',
+        'resource_type': 'Microsoft.OperationalInsights/workspaces',
+        'api_version': '2021-06-01',
+        'params': [
+            ('workspaceName', 'string', 'la-portfolio', 'Log Analytics workspace name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+        ],
+        'outputs': [('workspaceId', 'string', 'logAnalyticsWorkspace.id')],
+    },
+    'monitoring/diagnostic-settings': {
+        'title': 'Diagnostic Settings',
+        'description': 'Deploys diagnostic settings for resource logs.',
+        'resource_type': 'Microsoft.Insights/diagnosticSettings',
+        'api_version': '2021-05-01-preview',
+        'params': [
+            ('resourceId', 'string', '/subscriptions/.../resourceGroups/.../providers/...', 'Target resource ID'),
+            ('workspaceId', 'string', '/subscriptions/.../resourceGroups/.../providers/Microsoft.OperationalInsights/workspaces/...', 'Log Analytics workspace ID'),
+        ],
+        'name_template': "'${resourceId}/diagnosticSettings'",
+        'outputs': [('diagnosticSettingsId', 'string', 'diagnosticSettings.id')],
+    },
+    'monitoring/log-analytics-workspace': {
+        'title': 'Log Analytics Workspace',
+        'description': 'Deploys an Azure Log Analytics workspace.',
+        'resource_type': 'Microsoft.OperationalInsights/workspaces',
+        'api_version': '2021-06-01',
+        'params': [
+            ('workspaceName', 'string', 'laworkspace-portfolio', 'Log Analytics workspace name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+        ],
+        'outputs': [('workspaceId', 'string', 'workspace.id')],
+    },
+    'monitoring/metric-alert': {
+        'title': 'Metric Alert',
+        'description': 'Deploys a metric alert for Azure monitoring.',
+        'resource_type': 'Microsoft.Insights/metricAlerts',
+        'api_version': '2018-03-01',
+        'params': [
+            ('alertName', 'string', 'metricAlert', 'Metric alert name'),
+            ('targetResourceId', 'string', '/subscriptions/.../resourceGroups/.../providers/Microsoft.Compute/virtualMachines/...', 'Target resource ID'),
+            ('criteriaValue', 'int', 80, 'Metric threshold'),
+        ],
+        'outputs': [('alertId', 'string', 'metricAlert.id')],
+    },
+    'networking/application-gateway': {
+        'title': 'Application Gateway',
+        'description': 'Deploys an Azure Application Gateway.',
+        'resource_type': 'Microsoft.Network/applicationGateways',
+        'api_version': '2023-02-01',
+        'params': [
+            ('gatewayName', 'string', 'appgw-portfolio', 'Application Gateway name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+        ],
+        'outputs': [('gatewayId', 'string', 'appGateway.id')],
+    },
+    'networking/firewall': {
+        'title': 'Azure Firewall',
+        'description': 'Deploys an Azure Firewall instance.',
+        'resource_type': 'Microsoft.Network/azureFirewalls',
+        'api_version': '2023-05-01',
+        'params': [
+            ('firewallName', 'string', 'azfw-portfolio', 'Firewall name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+        ],
+        'outputs': [('firewallId', 'string', 'firewall.id')],
+    },
+    'networking/front-door': {
+        'title': 'Front Door',
+        'description': 'Deploys an Azure Front Door profile for global traffic routing.',
+        'resource_type': 'Microsoft.Cdn/profiles',
+        'api_version': '2023-05-01',
+        'params': [
+            ('profileName', 'string', 'frontdoor-portfolio', 'Front Door profile name'),
+            ('location', 'string', 'global', 'Resource location'),
+        ],
+        'properties': {'sku': {'name': 'Standard_AzureFrontDoor'}},
+        'outputs': [('profileId', 'string', 'frontDoorProfile.id')],
+    },
+    'networking/nat-gateway': {
+        'title': 'NAT Gateway',
+        'description': 'Deploys an Azure NAT Gateway for outbound connectivity.',
+        'resource_type': 'Microsoft.Network/natGateways',
+        'api_version': '2023-05-01',
+        'params': [
+            ('natGatewayName', 'string', 'natgw-portfolio', 'NAT Gateway name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+        ],
+        'outputs': [('natGatewayId', 'string', 'natGateway.id')],
+    },
+    'networking/nsg': {
+        'title': 'Network Security Group',
+        'description': 'Deploys an Azure Network Security Group.',
+        'resource_type': 'Microsoft.Network/networkSecurityGroups',
+        'api_version': '2023-05-01',
+        'params': [
+            ('nsgName', 'string', 'nsg-portfolio', 'NSG name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+        ],
+        'outputs': [('nsgId', 'string', 'networkSecurityGroup.id')],
+    },
+    'networking/private-dns-link': {
+        'title': 'Private DNS Zone Virtual Network Link',
+        'description': 'Deploys a virtual network link for a Private DNS zone.',
+        'resource_type': 'Microsoft.Network/privateDnsZones/virtualNetworkLinks',
+        'api_version': '2020-06-01',
+        'name_template': "'${zoneName}/${linkName}'",
+        'params': [
+            ('zoneName', 'string', 'privatelinkzone', 'Private DNS zone name'),
+            ('linkName', 'string', 'vnet-link', 'Virtual network link name'),
+            ('virtualNetworkId', 'string', '/subscriptions/.../resourceGroups/.../providers/Microsoft.Network/virtualNetworks/...', 'Virtual network resource ID'),
+        ],
+        'outputs': [('linkId', 'string', 'dnsLink.id')],
+    },
+    'networking/private-dns-zone': {
+        'title': 'Private DNS Zone',
+        'description': 'Deploys an Azure Private DNS zone.',
+        'resource_type': 'Microsoft.Network/privateDnsZones',
+        'api_version': '2020-06-01',
+        'params': [
+            ('zoneName', 'string', 'privatelinkzone', 'Private DNS zone name'),
+            ('location', 'string', 'global', 'Resource location'),
+        ],
+        'outputs': [('zoneId', 'string', 'dnsZone.id')],
+    },
+    'networking/private-endpoint': {
+        'title': 'Private Endpoint',
+        'description': 'Deploys an Azure Private Endpoint for a private resource connection.',
+        'resource_type': 'Microsoft.Network/privateEndpoints',
+        'api_version': '2023-05-01',
+        'params': [
+            ('privateEndpointName', 'string', 'pe-portfolio', 'Private Endpoint name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+            ('subnetId', 'string', '/subscriptions/.../resourceGroups/.../providers/Microsoft.Network/virtualNetworks/.../subnets/...', 'Subnet resource ID'),
+            ('privateLinkServiceId', 'string', '/subscriptions/.../resourceGroups/.../providers/Microsoft.Network/privateLinkServices/...', 'Private Link service ID'),
+        ],
+        'outputs': [('privateEndpointId', 'string', 'privateEndpoint.id')],
+    },
+    'networking/route-table': {
+        'title': 'Route Table',
+        'description': 'Deploys an Azure route table for network routing.',
+        'resource_type': 'Microsoft.Network/routeTables',
+        'api_version': '2023-05-01',
+        'params': [
+            ('routeTableName', 'string', 'rt-portfolio', 'Route table name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+        ],
+        'outputs': [('routeTableId', 'string', 'routeTable.id')],
+    },
+    'networking/subnet': {
+        'title': 'Subnet',
+        'description': 'Deploys a subnet within an existing virtual network.',
+        'resource_type': 'Microsoft.Network/virtualNetworks/subnets',
+        'api_version': '2023-05-01',
+        'name_template': "'${vnetName}/${subnetName}'",
+        'params': [
+            ('vnetName', 'string', 'vnet-portfolio', 'Existing virtual network name'),
+            ('subnetName', 'string', 'subnet1', 'Subnet name'),
+            ('addressPrefix', 'string', '10.0.1.0/24', 'Subnet address prefix'),
+        ],
+        'outputs': [('subnetId', 'string', 'subnet.id')],
+    },
+    'networking/vnet': {
+        'title': 'Virtual Network',
+        'description': 'Deploys an Azure virtual network with address space.',
+        'resource_type': 'Microsoft.Network/virtualNetworks',
+        'api_version': '2023-05-01',
+        'params': [
+            ('vnetName', 'string', 'vnet-portfolio', 'Virtual network name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+            ('addressPrefix', 'string', '10.0.0.0/16', 'VNet address prefix'),
+        ],
+        'properties': {'addressSpace': {'addressPrefixes': ['10.0.0.0/16']}},
+        'outputs': [('vnetId', 'string', 'vnet.id')],
+    },
+    'security/defender-for-cloud': {
+        'title': 'Defender for Cloud Pricing',
+        'description': 'Deploys Defender for Cloud pricing configuration.',
+        'resource_type': 'Microsoft.Security/pricings',
+        'api_version': '2023-01-01-preview',
+        'name_template': "'default'",
+        'params': [
+            ('pricingTier', 'string', 'Standard', 'Defender pricing tier'),
+        ],
+        'outputs': [('pricingId', 'string', 'pricing.id')],
+    },
+    'security/diagnostic-settings': {
+        'title': 'Security Diagnostic Settings',
+        'description': 'Deploys diagnostic settings for a security resource.',
+        'resource_type': 'Microsoft.Insights/diagnosticSettings',
+        'api_version': '2021-05-01-preview',
+        'name_template': "'${resourceId}/diagnosticSettings'",
+        'params': [
+            ('resourceId', 'string', '/subscriptions/.../resourceGroups/.../providers/Microsoft.KeyVault/vaults/...', 'Target resource ID'),
+            ('workspaceId', 'string', '/subscriptions/.../resourceGroups/.../providers/Microsoft.OperationalInsights/workspaces/...', 'Log Analytics workspace ID'),
+        ],
+        'outputs': [('settingsId', 'string', 'diagnosticSettings.id')],
+    },
+    'security/key-vault': {
+        'title': 'Key Vault',
+        'description': 'Deploys an Azure Key Vault with soft delete and access policies.',
+        'resource_type': 'Microsoft.KeyVault/vaults',
+        'api_version': '2024-04-01',
+        'params': [
+            ('keyVaultName', 'string', 'kv-portfolio', 'Key Vault name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+            ('tenantId', 'string', '00000000-0000-0000-0000-000000000000', 'Tenant ID'),
+        ],
+        'properties': {'properties': {'sku': {'family': 'A', 'name': 'standard'}, 'tenantId': '00000000-0000-0000-0000-000000000000'}},
+        'outputs': [('keyVaultId', 'string', 'keyVault.id')],
+    },
+    'security/managed-identity': {
+        'title': 'Managed Identity',
+        'description': 'Deploys a user-assigned managed identity.',
+        'resource_type': 'Microsoft.ManagedIdentity/userAssignedIdentities',
+        'api_version': '2018-11-30',
+        'params': [
+            ('identityName', 'string', 'identity-portfolio', 'Managed identity name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+        ],
+        'outputs': [('identityId', 'string', 'managedIdentity.id')],
+    },
+    'security/private-link': {
+        'title': 'Private Link Service',
+        'description': 'Deploys an Azure Private Link Service for private connectivity.',
+        'resource_type': 'Microsoft.Network/privateLinkServices',
+        'api_version': '2023-05-01',
+        'params': [
+            ('serviceName', 'string', 'pls-portfolio', 'Private Link Service name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+        ],
+        'outputs': [('serviceId', 'string', 'privateLinkService.id')],
+    },
+    'security/rbac': {
+        'title': 'Role Definition',
+        'description': 'Deploys a custom RBAC role definition.',
+        'resource_type': 'Microsoft.Authorization/roleDefinitions',
+        'api_version': '2022-04-01-preview',
+        'name_template': "guid(subscription().id, roleName)",
+        'params': [
+            ('roleName', 'string', 'CustomRole', 'Role definition name'),
+            ('description', 'string', 'Custom role definition', 'Role definition description'),
+            ('permissions', 'array', [{'actions': ['*'], 'notActions': []}], 'Action permissions'),
+            ('assignableScopes', 'array', ['/subscriptions/<subscriptionId>'], 'Assignable scopes'),
+        ],
+        'outputs': [('roleDefinitionId', 'string', 'roleDefinition.id')],
+    },
+    'security/user-assigned-managed-identity': {
+        'title': 'User Assigned Managed Identity',
+        'description': 'Deploys a user-assigned managed identity.',
+        'resource_type': 'Microsoft.ManagedIdentity/userAssignedIdentities',
+        'api_version': '2018-11-30',
+        'params': [
+            ('identityName', 'string', 'uami-portfolio', 'Managed identity name'),
+            ('location', 'string', 'eastus', 'Azure location'),
+        ],
+        'outputs': [('identityId', 'string', 'managedIdentity.id')],
+    },
+}
+
+
+def format_bicep_value(value):
+    if isinstance(value, str):
+        if value.startswith("'") and value.endswith("'"):
+            return value
+        return f"'{value}'"
+    if isinstance(value, bool):
+        return 'true' if value else 'false'
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, list):
+        values = ', '.join(format_bicep_value(v) for v in value)
+        return f'[{values}]'
+    if isinstance(value, dict):
+        items = ', '.join(f'{k}: {format_bicep_value(v)}' for k, v in value.items())
+        return f'{{ {items} }}'
+    return json.dumps(value)
+
+
+def render_properties(properties):
+    parts = []
+    for key, value in properties.items():
+        if isinstance(value, dict):
+            nested = '\n'.join(['    ' + line for line in render_properties(value).splitlines()])
+            parts.append(f'{key}: {{\n{nested}\n}}')
+        else:
+            parts.append(f'{key}: {format_bicep_value(value)}')
+    return '\n'.join(parts)
+
+
+def generate_bicep(defn, resource_name):
+    params = defn.get('params', [])
+    lines = []
+    for name, ptype, default, desc in params:
+        default_clause = '' if default == '' else f' = {format_bicep_value(default)}'
+        lines.append(f'param {name} {ptype}{default_clause}')
+    if not any(name == 'location' for name, *_ in params):
+        lines.insert(0, "param location string = 'eastus'")
+    lines.append('')
+    resource_type = defn['resource_type']
+    api_version = defn['api_version']
+    name_expr = defn.get('name_template', None)
+    if name_expr:
+        name_line = f'  name: {name_expr}'
+    else:
+        if any(name.lower().endswith('name') for name, *_ in params):
+            first_name_param = next(name for name, *_ in params if name.lower().endswith('name'))
+            name_line = f'  name: {first_name_param}'
+        else:
+            name_line = "  name: 'placeholder'"
+    lines.append(f'resource {resource_name} \'{resource_type}@{api_version}\' = {{')
+    lines.append(name_line)
+    lines.append('  location: location')
+    resource_fields = defn.get('resource_fields', None)
+    properties = defn.get('properties', {})
+    if resource_fields is not None:
+        for key, value in resource_fields.items():
+            if isinstance(value, dict):
+                lines.append(f'  {key}: {{')
+                for subkey, subvalue in value.items():
+                    if isinstance(subvalue, dict):
+                        lines.append(f'    {subkey}: {{')
+                        for k2, v2 in subvalue.items():
+                            lines.append(f'      {k2}: {format_bicep_value(v2)}')
+                        lines.append('    }')
+                    else:
+                        lines.append(f'    {subkey}: {format_bicep_value(subvalue)}')
+                lines.append('  }')
+            else:
+                lines.append(f'  {key}: {format_bicep_value(value)}')
+    elif properties:
+        lines.append('  properties: {')
+        for key, value in properties.items():
+            if isinstance(value, dict):
+                lines.append(f'    {key}: {{')
+                for subkey, subvalue in value.items():
+                    if isinstance(subvalue, dict):
+                        lines.append(f'      {subkey}: {{')
+                        for k2, v2 in subvalue.items():
+                            lines.append(f'        {k2}: {format_bicep_value(v2)}')
+                        lines.append('      }')
+                    else:
+                        lines.append(f'      {subkey}: {format_bicep_value(subvalue)}')
+                lines.append('    }')
+            else:
+                lines.append(f'    {key}: {format_bicep_value(value)}')
+        lines.append('  }')
+    lines.append('}')
+    outputs = defn.get('outputs', [])
+    if outputs:
+        lines.append('')
+        for name, ptype, value in outputs:
+            if isinstance(value, str) and value.startswith(f'{resource_name}.'):
+                output_value = value
+            else:
+                output_value = f'{resource_name}.id'
+            lines.append(f'output {name} {ptype} = {output_value}')
+    return '\n'.join(lines)
+
+
+def generate_parameters(defn):
+    params = defn.get('params', [])
+    parameters = {}
+    for name, ptype, default, desc in params:
+        if default != '':
+            parameters[name] = {'value': default}
+        else:
+            if ptype == 'string':
+                parameters[name] = {'value': ''}
+            elif ptype == 'int':
+                parameters[name] = {'value': 1}
+            elif ptype == 'array':
+                parameters[name] = {'value': []}
+            elif ptype == 'bool':
+                parameters[name] = {'value': False}
+            else:
+                parameters[name] = {'value': ''}
+    return {'$schema': 'https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#', 'contentVersion': '1.0.0.0', 'parameters': parameters}
+
+
+def generate_readme(defn, module_dir):
+    params = defn.get('params', [])
+    outputs = defn.get('outputs', [])
+    lines = [f"# {defn['title']}", '', defn['description'], '', '## Module', '', 'This directory contains a reusable Azure Bicep module.', '', '## Parameters', '']
+    for name, ptype, default, desc in params:
+        default_text = f' (default: {default})' if default != '' else ''
+        lines.append(f'- `{name}` ({ptype}) - {desc}{default_text}')
+    if outputs:
+        lines.extend(['', '## Outputs', ''])
+        for name, ptype, value in outputs:
+            lines.append(f'- `{name}` ({ptype})')
+    lines.extend(['', '## Example', ''])
+    module_name = module_dir.name.replace('-', '')
+    lines.append('```bicep')
+    lines.append(f"module {module_name} './main.bicep' = {{")
+    lines.append('  name: ' + f"'{module_dir.name}-deploy'" )
+    lines.append('  params: {')
+    for name, ptype, default, desc in params:
+        sample = default if default != '' else ('true' if ptype == 'bool' else '1' if ptype == 'int' else f"'{name}-value'")
+        default_value = sample if isinstance(sample, str) and sample.startswith("'") else format_bicep_value(sample)
+        lines.append(f'    {name}: {default_value}')
+    lines.append('  }')
+    lines.append('}')
+    lines.append('```')
+    return '\n'.join(lines)
+
+
+def apply_module_definition(module_path, defn):
+    main_path = module_path / 'main.bicep'
+    params_path = module_path / 'main.parameters.json'
+    readme_path = module_path / 'README.md'
+    resource_name = 'resourceModule'
+    main_contents = generate_bicep(defn, resource_name)
+    params_contents = generate_parameters(defn)
+    readme_contents = generate_readme(defn, module_path)
+    main_path.write_text(main_contents + '\n')
+    params_path.write_text(json.dumps(params_contents, indent=2) + '\n')
+    readme_path.write_text(readme_contents + '\n')
+
+
+def main():
+    for module_dir in base.rglob('*'):
+        if module_dir.is_dir() and (module_dir / 'main.bicep').exists():
+            rel = module_dir.relative_to(base).as_posix()
+            defn = module_defs.get(rel)
+            if defn is None:
+                print(f'WARNING: no definition for {rel}, generating generic placeholder')
+                defn = {
+                    'title': f'{module_dir.name}',
+                    'description': f'Reusable Azure Bicep module for {module_dir.name}.',
+                    'resource_type': 'Microsoft.Resources/deployments',
+                    'api_version': '2021-04-01',
+                    'params': [
+                        ('name', 'string', module_dir.name, 'Resource name'),
+                        ('location', 'string', 'eastus', 'Azure location'),
+                    ],
+                    'outputs': [('resourceId', 'string', 'resourceModule.id')],
+                }
+            apply_module_definition(module_dir, defn)
+    readme_root = base / 'README.md'
+    readme_root.write_text('# Azure Bicep Modules\n\nThis directory contains reusable Azure Bicep modules grouped by category. Each module includes `main.bicep`, `main.parameters.json`, and a `README.md` with usage examples.\n')
+
+if __name__ == '__main__':
+    main()

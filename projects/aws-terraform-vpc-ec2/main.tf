@@ -1,7 +1,6 @@
-module "vpc" {
-  source   = "../../modules/aws/networking/vpc"
-  name     = "portfolio-vpc"
-  vpc_cidr = "10.10.0.0/16"
-}
+# Security
 
-# Add subnet, security group, and EC2 module calls here.
+If you discover a security vulnerability, please disclose it privately to the repository owner.
+
+Do not commit secrets into the repository. Use tools like `git-secrets` or a secret scanning CI job.
+

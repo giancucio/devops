@@ -1,8 +1,6 @@
-#!/usr/bin/env bash
-set -euo pipefail
+# Security
 
-NAMESPACE="${1:?Usage: ./restart-deployment.sh <namespace> <deployment>}"
-DEPLOYMENT="${2:?Usage: ./restart-deployment.sh <namespace> <deployment>}"
+If you discover a security vulnerability, please disclose it privately to the repository owner.
 
-kubectl rollout restart deployment "$DEPLOYMENT" -n "$NAMESPACE"
-kubectl rollout status deployment "$DEPLOYMENT" -n "$NAMESPACE"
+Do not commit secrets into the repository. Use tools like `git-secrets` or a secret scanning CI job.
+

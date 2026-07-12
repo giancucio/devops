@@ -1,9 +1,6 @@
-#!/usr/bin/env bash
-set -euo pipefail
+# Security
 
-REGION="${1:-ap-northeast-1}"
+If you discover a security vulnerability, please disclose it privately to the repository owner.
 
-aws ec2 describe-instances \
-  --region "$REGION" \
-  --query "Reservations[].Instances[].{InstanceId:InstanceId,State:State.Name,Type:InstanceType,PrivateIp:PrivateIpAddress,PublicIp:PublicIpAddress}" \
-  --output table
+Do not commit secrets into the repository. Use tools like `git-secrets` or a secret scanning CI job.
+

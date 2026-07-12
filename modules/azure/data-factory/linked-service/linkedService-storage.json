@@ -1,9 +1,0 @@
-{
-  "name": "ls_storage_sample",
-  "properties": {
-    "type": "AzureBlobStorage",
-    "typeProperties": {
-      "connectionString": "DefaultEndpointsProtocol=https;AccountName=<account>;EndpointSuffix=core.windows.net;"
-    }
-  }
-}

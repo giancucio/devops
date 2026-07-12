@@ -1,10 +1,6 @@
-Write-Host "Running local validation checks..."
+# Security
 
-if (Get-Command terraform -ErrorAction SilentlyContinue) {
-  Write-Host "Running terraform fmt..."
-  Get-ChildItem -Recurse -Filter *.tf | ForEach-Object { terraform fmt $_.FullName -check }
-} else {
-  Write-Host "Terraform not installed, skipping terraform checks."
-}
+If you discover a security vulnerability, please disclose it privately to the repository owner.
 
-Write-Host "Check shell scripts with shellcheck (if installed)."
+Do not commit secrets into the repository. Use tools like `git-secrets` or a secret scanning CI job.
+

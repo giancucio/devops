@@ -1,11 +1,6 @@
-# Sample DevOps Flow
+# Security
 
-```mermaid
-flowchart LR
-    Dev[Developer] --> PR[Pull Request]
-    PR --> CI[Validation]
-    CI --> Plan[Plan / What-If]
-    Plan --> Approval[Approval]
-    Approval --> Deploy[Deploy]
-    Deploy --> Monitor[Monitor]
-```
+If you discover a security vulnerability, please disclose it privately to the repository owner.
+
+Do not commit secrets into the repository. Use tools like `git-secrets` or a secret scanning CI job.
+

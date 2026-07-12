@@ -1,10 +1,6 @@
-# Docs Site
+# Security
 
-This folder can be used to generate a documentation website (MkDocs, Docusaurus, or similar).
+If you discover a security vulnerability, please disclose it privately to the repository owner.
 
-Getting started (example with MkDocs):
+Do not commit secrets into the repository. Use tools like `git-secrets` or a secret scanning CI job.
 
-```bash
-pip install mkdocs mkdocs-material
-mkdocs new site
-```
