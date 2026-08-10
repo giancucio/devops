@@ -39,7 +39,7 @@ stages:
           - task: AzureCLI@2
             displayName: Terraform Init, Fmt, Validate, Plan
             inputs:
-              azureSubscription: "giancucio3cazuresc"
+              azureSubscription: "giancucio3cscwif"
               scriptType: bash
               scriptLocation: inlineScript
               workingDirectory: $(workingDirectory)
@@ -88,7 +88,7 @@ stages:
                 - task: AzureCLI@2
                   displayName: Terraform Init and Apply
                   inputs:
-                    azureSubscription: "giancucio3cazuresc"
+                    azureSubscription: "giancucio3cscwif"
                     scriptType: bash
                     scriptLocation: inlineScript
                     workingDirectory: $(workingDirectory)
