@@ -26,6 +26,9 @@ variables:
   - name: backendKey
     value: 'aks.tfstate'
 
+  - name: tfvarsFile
+    value: 'terraform.tfvars'
+
 pool:
   vmImage: ubuntu-latest
 
@@ -85,7 +88,15 @@ stages:
               scriptLocation: inlineScript
               workingDirectory: $(workingDirectory)
               inlineScript: |
-                terraform plan -out=tfplan
+                if [ ! -f "$(tfvarsFile)" ]; then
+                  echo "ERROR: $(tfvarsFile) was not found in $(workingDirectory)."
+                  echo "If this file is ignored locally, commit a non-secret tfvars file (or use pipeline variables) for CI/CD."
+                  exit 1
+                fi
+
+                terraform plan \
+                  -var-file="$(tfvarsFile)" \
+                  -out=tfplan
 
           - task: PublishPipelineArtifact@1
             displayName: Publish tfplan
