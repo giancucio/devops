@@ -94,13 +94,13 @@ stages:
               artifact: 'tfplan'
               publishLocation: 'pipeline'
 
-  - stage: ManualApproval
-    displayName: Manual Approval
+  - stage: Apply
+    displayName: Terraform Apply
     dependsOn: Plan
     condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
     jobs:
       - job: WaitForApproval
-        displayName: Wait For Approval
+        displayName: Manual Approval
         pool: server
         timeoutInMinutes: 1440
         steps:
@@ -108,16 +108,12 @@ stages:
             timeoutInMinutes: 1440
             inputs:
               notifyUsers: ''
-              instructions: 'Review Terraform plan output artifact before approving the apply stage.'
+              instructions: 'Review Terraform plan output artifact before approving apply.'
               onTimeout: 'reject'
 
-  - stage: Apply
-    displayName: Terraform Apply
-    dependsOn: ManualApproval
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
-    jobs:
       - job: Apply
         displayName: Terraform Apply
+        dependsOn: WaitForApproval
         steps:
           - checkout: self
 
