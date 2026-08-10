@@ -1,0 +1,110 @@
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - projects/azure-terraform-aks/*
+      - projects/azure-terraform-aks/terraform/*
+
+pr:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - projects/azure-terraform-aks/*
+      - projects/azure-terraform-aks/terraform/*
+
+variables:
+  workingDirectory: projects/azure-terraform-aks/terraform
+  applyChanges: "false"
+  environmentName: aks-dev
+  tfStateResourceGroup: ""
+  tfStateStorageAccount: ""
+  tfStateContainer: ""
+  tfStateKey: ""
+
+stages:
+  - stage: ValidateAndPlan
+    displayName: Terraform Validate and Plan
+    jobs:
+      - job: terraform_plan
+        displayName: Terraform Plan
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - checkout: self
+
+          - task: AzureCLI@2
+            displayName: Terraform Init, Fmt, Validate, Plan
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: bash
+              scriptLocation: inlineScript
+              workingDirectory: $(workingDirectory)
+              addSpnToEnvironment: true
+              inlineScript: |
+                set -euo pipefail
+
+                export ARM_CLIENT_ID="$servicePrincipalId"
+                export ARM_CLIENT_SECRET="$servicePrincipalKey"
+                export ARM_TENANT_ID="$tenantId"
+                export ARM_SUBSCRIPTION_ID="$(az account show --query id -o tsv)"
+
+                terraform version
+
+                BACKEND_ARGS=""
+                if [[ -n "$(tfStateResourceGroup)" && -n "$(tfStateStorageAccount)" && -n "$(tfStateContainer)" && -n "$(tfStateKey)" ]]; then
+                  BACKEND_ARGS="-backend-config=resource_group_name=$(tfStateResourceGroup) -backend-config=storage_account_name=$(tfStateStorageAccount) -backend-config=container_name=$(tfStateContainer) -backend-config=key=$(tfStateKey)"
+                fi
+
+                terraform init -input=false $BACKEND_ARGS
+                terraform fmt -check -recursive
+                terraform validate
+                terraform plan -out=tfplan -input=false
+                terraform show -no-color tfplan > tfplan.txt
+
+          - publish: $(workingDirectory)/tfplan.txt
+            artifact: terraform-plan
+            displayName: Publish Terraform Plan Output
+
+  - stage: Apply
+    displayName: Terraform Apply
+    dependsOn: ValidateAndPlan
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq(variables['applyChanges'], 'true'))
+    jobs:
+      - deployment: terraform_apply
+        displayName: Terraform Apply Deployment
+        environment: $(environmentName)
+        pool:
+          vmImage: ubuntu-latest
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - task: AzureCLI@2
+                  displayName: Terraform Init and Apply
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    workingDirectory: $(workingDirectory)
+                    addSpnToEnvironment: true
+                    inlineScript: |
+                      set -euo pipefail
+
+                      export ARM_CLIENT_ID="$servicePrincipalId"
+                      export ARM_CLIENT_SECRET="$servicePrincipalKey"
+                      export ARM_TENANT_ID="$tenantId"
+                      export ARM_SUBSCRIPTION_ID="$(az account show --query id -o tsv)"
+
+                      BACKEND_ARGS=""
+                      if [[ -n "$(tfStateResourceGroup)" && -n "$(tfStateStorageAccount)" && -n "$(tfStateContainer)" && -n "$(tfStateKey)" ]]; then
+                        BACKEND_ARGS="-backend-config=resource_group_name=$(tfStateResourceGroup) -backend-config=storage_account_name=$(tfStateStorageAccount) -backend-config=container_name=$(tfStateContainer) -backend-config=key=$(tfStateKey)"
+                      fi
+
+                      terraform init -input=false $BACKEND_ARGS
+                      terraform apply -input=false -auto-approve

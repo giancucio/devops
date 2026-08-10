@@ -1,0 +1,21 @@
+version: 0.2
+
+env:
+  shell: bash
+
+phases:
+  build:
+    commands:
+      - cd projects/aws-terraform-eks-codepipeline/terraform
+      - terraform fmt -check -recursive
+      - terraform init -input=false -backend-config="bucket=$TF_STATE_BUCKET" -backend-config="key=$TF_STATE_KEY" -backend-config="region=$AWS_DEFAULT_REGION" -backend-config="dynamodb_table=$TF_LOCK_TABLE" -backend-config="encrypt=true"
+      - terraform validate
+      - terraform plan -input=false -out=tfplan
+
+artifacts:
+  base-directory: projects/aws-terraform-eks-codepipeline
+  files:
+    - "**/*"
+  exclude-paths:
+    - "**/.terraform/**/*"
+    - "**/terraform.tfstate*"

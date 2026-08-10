@@ -1,0 +1,9 @@
+environment         = "dev"
+location            = "eastus"
+resource_group_name = "rg-aks-dev-eastus"
+vnet_name           = "vnet-aks-dev-eastus"
+vnet_cidr           = "10.60.0.0/16"
+aks_cluster_name    = "aks-dev-eastus"
+dns_prefix          = "aksdev"
+node_count          = 3
+node_vm_size        = "Standard_DS2_v2"
