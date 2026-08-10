@@ -20,10 +20,10 @@ variables:
   workingDirectory: projects/azure-terraform-aks/terraform
   applyChanges: "false"
   environmentName: aks-dev
-  tfStateResourceGroup: ""
-  tfStateStorageAccount: ""
-  tfStateContainer: ""
-  tfStateKey: ""
+  tfStateResourceGroup: "giancucio-tfstate-rg"
+  tfStateStorageAccount: "giancuciotfstatesa"
+  tfStateContainer: "tfstate"
+  tfStateKey: "aks.tfstate"
 
 stages:
   - stage: ValidateAndPlan
