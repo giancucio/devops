@@ -1,99 +1,140 @@
-trigger:
-  branches:
-    include:
-      - main
-  paths:
-    include:
-      - projects/azure-terraform-aks/*
-      - projects/azure-terraform-aks/terraform/*
+trigger: none
 
-pr:
-  branches:
-    include:
-      - main
-  paths:
-    include:
-      - projects/azure-terraform-aks/*
-      - projects/azure-terraform-aks/terraform/*
+pr: none
+
+name: aks-terraform-$(Date:yyyyMMdd)$(Rev:.r)
 
 variables:
-  workingDirectory: projects/azure-terraform-aks/terraform
-  serviceConnection: "giancucio3cscwif"
-  applyChanges: "false"
-  environmentName: aks-dev
-  tfStateResourceGroup: "giancucio-tfstate-rg"
-  tfStateStorageAccount: "giancuciotfstatesa"
-  tfStateContainer: "tfstate"
-  tfStateKey: "aks.tfstate"
+  - name: terraformVersion
+    value: '1.15.8'
+
+  - name: workingDirectory
+    value: 'projects/azure-terraform-aks/terraform'
+
+  - name: serviceConnection
+    value: 'giancucio3cscwif'
+
+  - name: backendResourceGroupName
+    value: 'giancucio-tfstate-rg'
+
+  - name: backendStorageAccountName
+    value: 'giancuciotfstatesa'
+
+  - name: backendContainerName
+    value: 'tfstate'
+
+  - name: backendKey
+    value: 'aks.tfstate'
+
+pool:
+  vmImage: ubuntu-latest
 
 stages:
-  - stage: ValidateAndPlan
-    displayName: Terraform Validate and Plan
+  - stage: Plan
+    displayName: Terraform Plan
     jobs:
-      - job: terraform_plan
+      - job: Plan
         displayName: Terraform Plan
-        pool:
-          vmImage: ubuntu-latest
         steps:
           - checkout: self
 
+          - task: TerraformInstaller@1
+            displayName: Install Terraform
+            inputs:
+              terraformVersion: $(terraformVersion)
+
           - task: AzureCLI@2
-            displayName: Terraform Init, Fmt, Validate, Plan
+            displayName: Terraform Init
             inputs:
               azureSubscription: $(serviceConnection)
               scriptType: bash
               scriptLocation: inlineScript
               workingDirectory: $(workingDirectory)
               inlineScript: |
-                set -euo pipefail
+                terraform init \
+                  -backend-config="resource_group_name=$(backendResourceGroupName)" \
+                  -backend-config="storage_account_name=$(backendStorageAccountName)" \
+                  -backend-config="container_name=$(backendContainerName)" \
+                  -backend-config="key=$(backendKey)"
 
-                terraform version
-
-                BACKEND_ARGS=""
-                if [[ -n "$(tfStateResourceGroup)" && -n "$(tfStateStorageAccount)" && -n "$(tfStateContainer)" && -n "$(tfStateKey)" ]]; then
-                  BACKEND_ARGS="-backend-config=resource_group_name=$(tfStateResourceGroup) -backend-config=storage_account_name=$(tfStateStorageAccount) -backend-config=container_name=$(tfStateContainer) -backend-config=key=$(tfStateKey)"
-                fi
-
-                terraform init -input=false $BACKEND_ARGS
+          - task: AzureCLI@2
+            displayName: Terraform Fmt Check
+            inputs:
+              azureSubscription: $(serviceConnection)
+              scriptType: bash
+              scriptLocation: inlineScript
+              workingDirectory: $(workingDirectory)
+              inlineScript: |
                 terraform fmt -check -recursive
-                terraform validate
-                terraform plan -out=tfplan -input=false
-                terraform show -no-color tfplan > tfplan.txt
 
-          - publish: $(workingDirectory)/tfplan.txt
-            artifact: terraform-plan
-            displayName: Publish Terraform Plan Output
+          - task: AzureCLI@2
+            displayName: Terraform Validate
+            inputs:
+              azureSubscription: $(serviceConnection)
+              scriptType: bash
+              scriptLocation: inlineScript
+              workingDirectory: $(workingDirectory)
+              inlineScript: |
+                terraform validate
+
+          - task: AzureCLI@2
+            displayName: Terraform Plan
+            inputs:
+              azureSubscription: $(serviceConnection)
+              scriptType: bash
+              scriptLocation: inlineScript
+              workingDirectory: $(workingDirectory)
+              inlineScript: |
+                terraform plan -out=tfplan
+
+          - task: PublishPipelineArtifact@1
+            displayName: Publish tfplan
+            inputs:
+              targetPath: '$(workingDirectory)/tfplan'
+              artifact: 'tfplan'
+              publishLocation: 'pipeline'
 
   - stage: Apply
     displayName: Terraform Apply
-    dependsOn: ValidateAndPlan
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq(variables['applyChanges'], 'true'))
+    dependsOn: Plan
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
     jobs:
-      - deployment: terraform_apply
-        displayName: Terraform Apply Deployment
-        environment: $(environmentName)
-        pool:
-          vmImage: ubuntu-latest
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - checkout: self
+      - job: Apply
+        displayName: Terraform Apply
+        steps:
+          - checkout: self
 
-                - task: AzureCLI@2
-                  displayName: Terraform Init and Apply
-                  inputs:
-                    azureSubscription: $(serviceConnection)
-                    scriptType: bash
-                    scriptLocation: inlineScript
-                    workingDirectory: $(workingDirectory)
-                    inlineScript: |
-                      set -euo pipefail
+          - task: TerraformInstaller@1
+            displayName: Install Terraform
+            inputs:
+              terraformVersion: $(terraformVersion)
 
-                      BACKEND_ARGS=""
-                      if [[ -n "$(tfStateResourceGroup)" && -n "$(tfStateStorageAccount)" && -n "$(tfStateContainer)" && -n "$(tfStateKey)" ]]; then
-                        BACKEND_ARGS="-backend-config=resource_group_name=$(tfStateResourceGroup) -backend-config=storage_account_name=$(tfStateStorageAccount) -backend-config=container_name=$(tfStateContainer) -backend-config=key=$(tfStateKey)"
-                      fi
+          - task: DownloadPipelineArtifact@2
+            displayName: Download tfplan
+            inputs:
+              artifact: 'tfplan'
+              path: '$(workingDirectory)'
 
-                      terraform init -input=false $BACKEND_ARGS
-                      terraform apply -input=false -auto-approve
+          - task: AzureCLI@2
+            displayName: Terraform Init
+            inputs:
+              azureSubscription: $(serviceConnection)
+              scriptType: bash
+              scriptLocation: inlineScript
+              workingDirectory: $(workingDirectory)
+              inlineScript: |
+                terraform init \
+                  -backend-config="resource_group_name=$(backendResourceGroupName)" \
+                  -backend-config="storage_account_name=$(backendStorageAccountName)" \
+                  -backend-config="container_name=$(backendContainerName)" \
+                  -backend-config="key=$(backendKey)"
+
+          - task: AzureCLI@2
+            displayName: Terraform Apply
+            inputs:
+              azureSubscription: $(serviceConnection)
+              scriptType: bash
+              scriptLocation: inlineScript
+              workingDirectory: $(workingDirectory)
+              inlineScript: |
+                terraform apply -auto-approve tfplan
