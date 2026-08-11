@@ -1,0 +1,20 @@
+replicaCount: 1
+
+image:
+  repository: nginx
+  tag: latest
+  pullPolicy: IfNotPresent
+
+env:
+  SERVICE_NAME: worker
+  ENVIRONMENT: dev
+  VERSION: "1.0.0"
+  INTERVAL_SECONDS: "10"
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "300m"
+    memory: "256Mi"

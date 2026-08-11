@@ -1,0 +1,60 @@
+trigger: none
+
+pr: none
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  azureServiceConnection: 'giancucio3cscwif'
+  acrName: 'giancucioaksdeveus'
+  acrLoginServer: 'giancucioaksdeveus.azurecr.io'
+  frontendRepository: 'frontend'
+  apiRepository: 'api'
+  workerRepository: 'worker'
+  imageTag: '$(Build.BuildId)'
+
+stages:
+  - stage: BuildPush
+    displayName: Build and Push Images
+    jobs:
+      - job: BuildPushImages
+        steps:
+          - checkout: self
+
+          - task: AzureCLI@2
+            displayName: Login to ACR
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                az acr login --name "$ACR_NAME"
+            env:
+              ACR_NAME: $(acrName)
+
+          - script: |
+              docker build -t $(acrLoginServer)/$(frontendRepository):$(imageTag) ./projects/azure-terraform-aks/app/frontend
+              docker push $(acrLoginServer)/$(frontendRepository):$(imageTag)
+            displayName: Build and push frontend
+
+          - script: |
+              docker build -t $(acrLoginServer)/$(apiRepository):$(imageTag) ./projects/azure-terraform-aks/app/api
+              docker push $(acrLoginServer)/$(apiRepository):$(imageTag)
+            displayName: Build and push api
+
+          - script: |
+              docker build -t $(acrLoginServer)/$(workerRepository):$(imageTag) ./projects/azure-terraform-aks/app/worker
+              docker push $(acrLoginServer)/$(workerRepository):$(imageTag)
+            displayName: Build and push worker
+
+          - script: |
+              echo "$(imageTag)" > imageTag.txt
+            displayName: Write image tag artifact
+
+          - task: PublishPipelineArtifact@1
+            displayName: Publish image tag artifact
+            inputs:
+              targetPath: imageTag.txt
+              artifact: imageTag
+              publishLocation: pipeline

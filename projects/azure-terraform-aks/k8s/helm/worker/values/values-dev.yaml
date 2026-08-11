@@ -1,0 +1,7 @@
+replicaCount: 1
+
+env:
+  SERVICE_NAME: worker
+  ENVIRONMENT: dev
+  VERSION: "1.0.0"
+  INTERVAL_SECONDS: "10"

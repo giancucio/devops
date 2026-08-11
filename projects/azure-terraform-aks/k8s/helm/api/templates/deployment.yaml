@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: {{ .Release.Namespace }}
+spec:
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.container.port }}
+              protocol: TCP
+          env:
+            - name: SERVICE_NAME
+              value: "{{ .Values.env.SERVICE_NAME }}"
+            - name: ENVIRONMENT
+              value: "{{ .Values.env.ENVIRONMENT }}"
+            - name: VERSION
+              value: "{{ .Values.env.VERSION }}"
+            - name: APPLICATIONINSIGHTS_CONNECTION_STRING
+              value: "{{ .Values.env.APPLICATIONINSIGHTS_CONNECTION_STRING }}"
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.readiness.path }}
+              port: {{ .Values.container.port }}
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.liveness.path }}
+              port: {{ .Values.container.port }}
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}

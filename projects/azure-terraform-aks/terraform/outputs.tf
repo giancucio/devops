@@ -1,19 +1,40 @@
 output "resource_group_name" {
-  description = "Resource group containing the AKS deployment."
-  value       = azurerm_resource_group.aks.name
+  value = azurerm_resource_group.this.name
 }
 
-output "vnet_id" {
-  description = "ID of the virtual network created by the shared module."
-  value       = data.azurerm_virtual_network.aks.id
+output "aks_name" {
+  value = azurerm_kubernetes_cluster.this.name
 }
 
-output "aks_cluster_id" {
-  description = "ID of the AKS cluster created by the shared module."
-  value       = data.azurerm_kubernetes_cluster.aks.id
+output "aks_id" {
+  value = azurerm_kubernetes_cluster.this.id
 }
 
-output "aks_fqdn" {
-  description = "Public FQDN for the AKS API server."
-  value       = data.azurerm_kubernetes_cluster.aks.fqdn
+output "kube_config_command" {
+  value = "az aks get-credentials --resource-group ${azurerm_resource_group.this.name} --name ${azurerm_kubernetes_cluster.this.name} --overwrite-existing"
+}
+
+output "node_resource_group" {
+  value = azurerm_kubernetes_cluster.this.node_resource_group
+}
+
+output "acr_name" {
+  value = azurerm_container_registry.this.name
+}
+
+output "acr_login_server" {
+  value = azurerm_container_registry.this.login_server
+}
+
+output "acr_id" {
+  value = azurerm_container_registry.this.id
+}
+
+output "application_insights_connection_string" {
+  value     = azurerm_application_insights.this.connection_string
+  sensitive = true
+}
+
+output "application_insights_name" {
+  value = azurerm_application_insights.this.name
 }

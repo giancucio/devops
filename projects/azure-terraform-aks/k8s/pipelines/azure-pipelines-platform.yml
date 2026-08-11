@@ -1,0 +1,70 @@
+trigger: none
+pr: none
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  azureServiceConnection: 'giancucio3cscwif'
+  aksResourceGroup: 'rg-aks-dev-eastus'
+  aksClusterName: 'aks-dev-eastus'
+
+stages:
+  - stage: Bootstrap_Platform
+    displayName: Bootstrap AKS Platform
+    jobs:
+      - deployment: InstallIngressNginx
+        displayName: Install or Upgrade ingress-nginx
+        environment: aks-platform
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - task: AzureCLI@2
+                  displayName: Install ingress-nginx
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      set -euo pipefail
+
+                      az aks get-credentials \
+                        --resource-group "$(aksResourceGroup)" \
+                        --name "$(aksClusterName)" \
+                        --overwrite-existing
+
+                      helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+                      helm repo update
+
+                      helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+                        --namespace ingress-nginx \
+                        --create-namespace \
+                        -f projects/azure-terraform-aks/k8s/helm/ingress/ingress-nginx-values.yaml \
+                        --wait \
+                        --timeout 10m
+
+                      kubectl get ns ingress-nginx
+                      kubectl get pods -n ingress-nginx -o wide
+                      kubectl get svc -n ingress-nginx ingress-nginx-controller -o wide
+                      helm list -n ingress-nginx
+
+                - task: AzureCLI@2
+                  displayName: Verify Azure Load Balancer probes
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      set -euo pipefail
+
+                      NODE_RG=$(az aks show \
+                        -g "$(aksResourceGroup)" \
+                        -n "$(aksClusterName)" \
+                        --query nodeResourceGroup -o tsv)
+
+                      echo "AKS node resource group: ${NODE_RG}"
+                      az network lb list -g "${NODE_RG}" -o table || true
+                      az network lb probe list -g "${NODE_RG}" --lb-name kubernetes -o table || true

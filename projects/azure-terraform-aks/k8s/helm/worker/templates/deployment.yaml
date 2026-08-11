@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: {{ .Release.Namespace }}
+spec:
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: worker
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: SERVICE_NAME
+              value: "{{ .Values.env.SERVICE_NAME }}"
+            - name: ENVIRONMENT
+              value: "{{ .Values.env.ENVIRONMENT }}"
+            - name: VERSION
+              value: "{{ .Values.env.VERSION }}"
+            - name: INTERVAL_SECONDS
+              value: "{{ .Values.env.INTERVAL_SECONDS }}"
+          resources:
+{{ toYaml .Values.resources | indent 12 }}

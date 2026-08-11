@@ -1,0 +1,106 @@
+trigger: none
+pr: none
+
+resources:
+  pipelines:
+    - pipeline: appBuild
+      source: AKS App Build
+      trigger: true
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  azureServiceConnection: 'giancucio3cscwif'
+  aksResourceGroup: 'rg-aks-dev-eastus'
+  aksClusterName: 'aks-dev-eastus'
+  acrLoginServer: 'giancucioaksdeveus.azurecr.io'
+
+stages:
+  - stage: Deploy_Dev
+    displayName: Deploy to Dev
+    jobs:
+      - deployment: DeployDev
+        displayName: Deploy Helm releases to Dev
+        environment: aks-dev
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - download: appBuild
+                  artifact: imageTag
+                  displayName: Download image tag artifact
+
+                - bash: |
+                    set -euo pipefail
+                    IMAGE_TAG=$(cat "$(Pipeline.Workspace)/appBuild/imageTag/imageTag.txt")
+                    echo "Image tag from build pipeline: ${IMAGE_TAG}"
+                    echo "##vso[task.setvariable variable=imageTag]${IMAGE_TAG}"
+                  displayName: Read image tag from artifact
+
+                - task: AzureCLI@2
+                  displayName: Helm lint charts
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      set -euo pipefail
+                      helm lint projects/azure-terraform-aks/k8s/helm/api
+                      helm lint projects/azure-terraform-aks/k8s/helm/frontend
+                      helm lint projects/azure-terraform-aks/k8s/helm/worker
+
+                - task: AzureCLI@2
+                  displayName: Deploy to Dev
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      set -euo pipefail
+
+                      az aks get-credentials \
+                        --resource-group "$(aksResourceGroup)" \
+                        --name "$(aksClusterName)" \
+                        --overwrite-existing
+
+                      kubectl get nodes
+
+                      helm upgrade --install api projects/azure-terraform-aks/k8s/helm/api \
+                        --namespace dev \
+                        --create-namespace \
+                        -f projects/azure-terraform-aks/k8s/helm/api/values/values-dev.yaml \
+                        --set image.repository="$(acrLoginServer)/api" \
+                        --set image.tag="$(imageTag)" \
+                        --wait \
+                        --timeout 5m
+
+                      helm upgrade --install worker projects/azure-terraform-aks/k8s/helm/worker \
+                        --namespace dev \
+                        --create-namespace \
+                        -f projects/azure-terraform-aks/k8s/helm/worker/values/values-dev.yaml \
+                        --set image.repository="$(acrLoginServer)/worker" \
+                        --set image.tag="$(imageTag)" \
+                        --wait \
+                        --timeout 5m
+
+                      helm upgrade --install frontend projects/azure-terraform-aks/k8s/helm/frontend \
+                        --namespace dev \
+                        --create-namespace \
+                        -f projects/azure-terraform-aks/k8s/helm/frontend/values/values-dev.yaml \
+                        --set image.repository="$(acrLoginServer)/frontend" \
+                        --set image.tag="$(imageTag)" \
+                        --wait \
+                        --timeout 5m
+
+                      kubectl rollout status deployment/api -n dev --timeout=180s
+                      kubectl rollout status deployment/worker -n dev --timeout=180s
+                      kubectl rollout status deployment/frontend -n dev --timeout=180s
+
+                      helm list -n dev
+                      kubectl get pods -n dev
+                      kubectl get svc -n dev
+                      kubectl get ingress -n dev
+                      kubectl get hpa -n dev || true

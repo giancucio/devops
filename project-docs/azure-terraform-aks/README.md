@@ -8,6 +8,28 @@ This directory tracks the Kubernetes and observability learning path for the AKS
 - Practice role focus: DevOps engineer
 - Focus areas: Kubernetes operations and observability
 
+## Project Structure
+
+```
+projects/azure-terraform-aks/
+  app/              # api (Flask), frontend (nginx), worker (Python)
+  k8s/
+    namespaces/     # namespace manifests (namespace-as-code)
+    helm/           # Helm charts for api, frontend, worker, ingress-nginx
+    pipelines/      # platform bootstrap + app deploy pipelines
+  terraform/        # AKS, ACR, VNet, Log Analytics, AppInsights, Grafana
+  azure-pipelines.yml  # infra pipeline
+```
+
+## Pipelines Overview
+
+| Pipeline | File | Purpose |
+|---|---|---|
+| Infra | `azure-pipelines.yml` | Terraform plan/approve/apply |
+| App Build | `app/pipelines/azure-pipelines.yml` | Build and push images to ACR |
+| Platform Bootstrap | `k8s/pipelines/azure-pipelines-platform.yml` | Install ingress-nginx |
+| App Deploy | `k8s/pipelines/azure-pipelines.yml` | Deploy Helm releases to dev |
+
 ## Learning Roadmap
 
 - [Week 1 Kubernetes Foundations](week-1/README.md)
@@ -19,15 +41,18 @@ This directory tracks the Kubernetes and observability learning path for the AKS
 
 | Week | Status | Notes |
 |------|--------|-------|
-| Week 1 | In Progress | Day 1 completed in cluster |
-| Week 2 | Not Started | |
-| Week 3 | Not Started | |
-| Week 4 | Not Started | |
+| Week 1 | In Progress | Day 1 complete; real app deployed via Helm from Day 2 |
+| Week 2 | Not Started | HPA, ResourceQuota, PDB, NetworkPolicy |
+| Week 3 | Not Started | Grafana dashboards + alert rules (infra already provisioned) |
+| Week 4 | Not Started | Incident drills against real app |
 
-## Working Rule
+## Known Gaps to Close During Practice
 
-Complete each day with:
-
-1. Commands executed
-2. Evidence collected (kubectl output and behavior observed)
-3. Lessons learned and follow-up questions
+| Gap | Addressed in |
+|---|---|
+| ResourceQuota + LimitRange per namespace | Week 2 |
+| NetworkPolicy between namespaces | Week 2 |
+| PodDisruptionBudget | Week 2 |
+| Secrets via Key Vault CSI driver | Week 2 |
+| Staging Helm values and pipeline stage | Week 2 |
+| Grafana dashboards and alert rules as code | Week 3 |

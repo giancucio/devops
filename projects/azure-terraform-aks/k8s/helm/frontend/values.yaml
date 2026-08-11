@@ -1,0 +1,40 @@
+replicaCount: 1
+
+image:
+  repository: nginx
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+
+container:
+  port: 80
+
+ingress:
+  enabled: true
+  className: nginx
+  host: frontend-dev.local
+  tls:
+    enabled: false
+    secretName: ""
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "300m"
+    memory: "256Mi"
+
+probes:
+  readiness:
+    path: /
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  liveness:
+    path: /
+    initialDelaySeconds: 15
+    periodSeconds: 20

@@ -27,7 +27,13 @@ variables:
     value: 'aks.tfstate'
 
   - name: tfvarsFile
-    value: 'terraform.tfvars'
+    value: 'environments/dev.tfvars'
+
+  - name: aksClusterName
+    value: 'aks-dev-eastus'
+
+  - name: aksResourceGroup
+    value: 'rg-aks-dev-eastus'
 
 pool:
   vmImage: ubuntu-latest
@@ -162,3 +168,28 @@ stages:
               workingDirectory: $(workingDirectory)
               inlineScript: |
                 terraform apply -auto-approve tfplan
+
+  - stage: Bootstrap
+    displayName: Kubernetes Bootstrap
+    dependsOn: Apply
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - job: ApplyNamespaces
+        displayName: Apply Namespace Manifests
+        steps:
+          - checkout: self
+
+          - task: AzureCLI@2
+            displayName: Apply Namespaces
+            inputs:
+              azureSubscription: $(serviceConnection)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                az aks get-credentials \
+                  --resource-group $(aksResourceGroup) \
+                  --name $(aksClusterName) \
+                  --overwrite-existing
+
+                kubectl apply -f projects/azure-terraform-aks/k8s/namespaces/
+                kubectl get namespaces -l managed-by=pipeline

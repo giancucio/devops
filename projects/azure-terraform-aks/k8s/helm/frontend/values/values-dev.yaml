@@ -1,0 +1,5 @@
+replicaCount: 1
+
+# Replace with actual ingress-nginx external IP after platform bootstrap: frontend-dev.<EXTERNAL-IP>.nip.io
+ingress:
+  host: frontend-dev.local

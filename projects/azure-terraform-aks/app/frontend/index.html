@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AKS Practice Lab</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background: #f5f7fb;
+      color: #222;
+    }
+    .card {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      max-width: 700px;
+    }
+    button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    pre {
+      background: #111827;
+      color: #e5e7eb;
+      padding: 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Frontend Service</h1>
+    <p>This frontend calls the internal API service through nginx reverse proxy.</p>
+
+    <button onclick="callApi()">Call API</button>
+
+    <h2>Response</h2>
+    <pre id="output">Click the button to call /api/message</pre>
+  </div>
+
+  <script>
+    async function callApi() {
+      const output = document.getElementById("output");
+      output.textContent = "Calling API...";
+
+      try {
+        const response = await fetch("/api/message");
+        const data = await response.json();
+        output.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        output.textContent = "Error calling API: " + error;
+      }
+    }
+  </script>
+</body>
+</html>
