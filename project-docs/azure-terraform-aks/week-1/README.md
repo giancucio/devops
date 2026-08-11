@@ -10,9 +10,9 @@ Week 1 is YAML and kubectl only. Helm comes in Week 2.
 
 ## Daily Plan
 
-1. [Day 1 Namespaces and Deployments](day-1.md) ✅ — namespace setup, first deployment, rollout basics
-2. [Day 2 Deploy the Real App](day-2.md) — apply raw manifests for api, frontend, worker
-3. [Day 3 Health Probes](day-3.md) — readiness/liveness in the manifest; break and observe
+1. [Day 1 Namespaces and Deployments](day-1.md) ✅ — namespace setup, hello-web, scaling, rollout, rollback
+2. [Day 2 Deploy the Real App](day-2.md) ✅ — applied api/frontend/worker manifests, pod self-healing drill
+3. [Day 3 Health Probes](day-3.md) ✅ — broke readiness and liveness, observed traffic and restart behavior
 4. [Day 4 Rollouts and Rollbacks](day-4.md) — rolling update, rollback, revision history
 5. [Day 5 Resource Requests and Limits](day-5.md) — scheduling, OOMKilled, throttling
 

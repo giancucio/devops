@@ -65,9 +65,29 @@ kubectl describe pod -n dev -l app=api | grep -A 5 "Liveness\|Restart Count"
 
 What you learn: the pod keeps restarting. If it restarts too many times quickly, it enters `CrashLoopBackOff`.
 
-## Restore
+## Completed Lab State
 
-Revert both probes back to `path: /` in the manifest and re-apply:
+- Experiment 1: broke readiness probe (`path: /this-does-not-exist`)
+  - New pod stuck at `0/1` indefinitely
+  - Old pods stayed alive and kept serving traffic (`maxUnavailable: 0` protected them)
+  - Service endpoints only showed healthy old pod IPs — broken pod was excluded
+  - Restored probe → broken pod terminated, rollout completed cleanly
+
+- Experiment 2: broke liveness probe (`path: /this-does-not-exist`, `initialDelaySeconds: 5`)
+  - Rolling update completed (readiness passed) — new pods reached `1/1`
+  - After initialDelay, liveness failed 3 times → container killed → RESTARTS incremented
+  - Pod name stayed the same, only container restarted
+  - Restored probe → clean rollout, RESTARTS back to 0
+
+## Lessons Learned
+
+- Readiness failure = traffic gate: pod stays Running but excluded from Service, no traffic interruption
+- Liveness failure = self-healing: container killed and restarted inside same pod, brief traffic interruption
+- `maxUnavailable: 0` is critical — it kept old healthy pods alive while new broken pods were stuck
+- `kubectl get endpoints <service>` shows the live pod IPs the Service is currently routing to — broken pods are absent
+- RESTARTS counter in `kubectl get pods` is the first signal of a liveness problem
+- `CrashLoopBackOff` happens when RESTARTS keep climbing — Kubernetes backs off exponentially between restarts
+- Real-world use: liveness probe catches memory leaks and deadlocks that the OS cannot detect
 
 ```bash
 kubectl apply -f projects/azure-terraform-aks/k8s/manifests/dev/api-deployment.yaml
