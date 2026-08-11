@@ -82,3 +82,24 @@ kubectl get pods -n dev -w        # -w watches for changes in real time
 ```
 
 Why does a new pod appear? Because the Deployment tells the ReplicaSet to maintain 2 replicas at all times.
+
+## Completed Lab State
+
+- Applied all 5 manifests from `k8s/manifests/dev/` in one command
+- Deployments running: `api` (2 replicas), `frontend` (2 replicas), `worker` (1 replica)
+- Services created: `api` ClusterIP, `frontend` ClusterIP
+- Deleted one api pod manually — replacement appeared in 12 seconds
+- During pod replacement, readiness probe held new pod at `0/1` until nginx was ready — Service only routed to healthy pods
+
+## Lessons Learned
+
+- `kubectl apply -f <directory>` applies files alphabetically — order doesn't matter for independent resources
+- Services provide stable DNS and IP for pods — frontend calls `http://api` not a pod IP
+- Worker has no Service because nothing calls it — it only processes jobs
+- Pod self-healing: ReplicaSet controller continuously reconciles desired vs actual state
+- `0/1 Running` means container started but readiness probe not yet passed — no traffic sent to it yet
+- Pod names change on recreation but the ReplicaSet hash prefix stays the same
+
+- Current readiness probe uses `path: /` — nginx always returns 200 so this always passes
+- When the real Flask api image is deployed, update probe to `path: /health` which reflects true app state
+- Future practice (Week 3): add internal dependency checks inside `/health` (database connection, cache) so readiness probe reflects whether the app is truly ready, not just whether the container started
