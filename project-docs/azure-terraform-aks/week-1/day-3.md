@@ -2,7 +2,7 @@
 
 ## Objective
 
-Understand and experiment with readiness and liveness probes using the real api service.
+Understand and experiment with readiness and liveness probes by editing the raw manifest directly.
 
 ## Concept: What Are Probes?
 
@@ -12,73 +12,70 @@ Kubernetes cannot know if your app is healthy just because the container started
 |---|---|---|
 | **Readiness** | Is the app ready to receive traffic? | Pod removed from Service endpoints — no traffic sent |
 | **Liveness** | Is the app alive (not deadlocked)? | Pod is restarted |
-| **Startup** | Has the app finished starting? | Delays readiness/liveness checks for slow apps |
+| **Startup** | Has the app finished starting? | Delays readiness/liveness checks for slow-starting apps |
 
-The api service uses `/health` for both. See `k8s/helm/api/values.yaml`.
-
-## View Current Probe Config
-
-```bash
-kubectl describe deployment api -n dev | grep -A 20 "Liveness\|Readiness"
-```
+Open `k8s/manifests/dev/api-deployment.yaml` and find the `readinessProbe` and `livenessProbe` blocks.
+Both currently check `GET /` on port 80.
 
 ## Experiment 1: Break the readiness probe
 
-Change the readiness path to something that doesn't exist so the pod fails readiness but stays alive:
+Edit `api-deployment.yaml` — change the readiness probe path:
 
-```bash
-helm upgrade api projects/azure-terraform-aks/k8s/helm/api \
-  --namespace dev \
-  -f projects/azure-terraform-aks/k8s/helm/api/values/values-dev.yaml \
-  --set probes.readiness.path=/nonexistent \
-  --wait --timeout 60s || true
+```yaml
+readinessProbe:
+  httpGet:
+    path: /this-does-not-exist
+    port: 80
 ```
 
-Then observe:
+Apply it:
 
 ```bash
-kubectl get pods -n dev           # pod shows 0/1 READY
-kubectl describe pod -n dev -l app=api | grep -A 10 "Conditions\|Events"
-kubectl get endpoints -n dev      # api endpoint should be removed
+kubectl apply -f projects/azure-terraform-aks/k8s/manifests/dev/api-deployment.yaml
 ```
 
-What you learn: traffic stops going to the pod even though it is still Running.
-
-## Experiment 2: Restore and break liveness
+Observe:
 
 ```bash
-# Restore readiness
-helm upgrade api projects/azure-terraform-aks/k8s/helm/api \
-  --namespace dev \
-  -f projects/azure-terraform-aks/k8s/helm/api/values/values-dev.yaml \
-  --wait
-
-# Now set a very short liveness timeout to simulate deadlock detection
-helm upgrade api projects/azure-terraform-aks/k8s/helm/api \
-  --namespace dev \
-  -f projects/azure-terraform-aks/k8s/helm/api/values/values-dev.yaml \
-  --set probes.liveness.path=/nonexistent \
-  --set probes.liveness.initialDelaySeconds=5
+kubectl get pods -n dev              # READY column becomes 0/1
+kubectl describe pod -n dev -l app=api | grep -A 5 "Readiness\|Conditions"
+kubectl get endpoints -n dev         # api has no endpoints listed
 ```
 
-Watch the pod restart counter increase:
+What you learn: the pod is still `Running` but receives zero traffic.
+Kubernetes removed it from the Service load balancer.
+
+## Experiment 2: Restore readiness, break liveness
+
+Revert the readiness path to `/`, then break liveness:
+
+```yaml
+livenessProbe:
+  httpGet:
+    path: /this-does-not-exist
+    port: 80
+  initialDelaySeconds: 5
+```
 
 ```bash
-kubectl get pods -n dev -w
-kubectl describe pod -n dev -l app=api | grep -A 5 "Restart Count\|Liveness"
+kubectl apply -f projects/azure-terraform-aks/k8s/manifests/dev/api-deployment.yaml
+kubectl get pods -n dev -w           # watch RESTARTS column increment
+kubectl describe pod -n dev -l app=api | grep -A 5 "Liveness\|Restart Count"
 ```
+
+What you learn: the pod keeps restarting. If it restarts too many times quickly, it enters `CrashLoopBackOff`.
 
 ## Restore
 
+Revert both probes back to `path: /` in the manifest and re-apply:
+
 ```bash
-helm upgrade api projects/azure-terraform-aks/k8s/helm/api \
-  --namespace dev \
-  -f projects/azure-terraform-aks/k8s/helm/api/values/values-dev.yaml \
-  --wait
+kubectl apply -f projects/azure-terraform-aks/k8s/manifests/dev/api-deployment.yaml
+kubectl rollout status deployment/api -n dev
 ```
 
 ## Key Takeaway
 
-- **Readiness failure** = traffic protection (pod stays up, just not reachable)
-- **Liveness failure** = self-healing (pod is killed and replaced)
-- Both use the same `/health` endpoint in this app — in production you may split them
+- **Readiness failure** = traffic protection (pod stays up, removed from Service)
+- **Liveness failure** = self-healing (pod killed and replaced by Kubernetes)
+- You edited the YAML directly and applied it — this is exactly what Helm does internally when you `helm upgrade`

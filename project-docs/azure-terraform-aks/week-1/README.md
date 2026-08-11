@@ -1,40 +1,44 @@
 # Week 1 Kubernetes Foundations
 
-Goal: become fluent with core workload operations in AKS using the real 3-service app (api, frontend, worker).
+Goal: become fluent with raw Kubernetes operations before introducing any tooling abstractions.
 
-## Why use the real app?
+## Why raw manifests first?
 
-Practicing with a real Flask API, nginx frontend, and Python worker teaches you:
-- How pods communicate inside the cluster
-- How readiness/liveness probes protect live traffic
-- How rolling updates behave on a real app (not a toy nginx)
-- How logs and health checks look under real conditions
+Helm, Kustomize, and ArgoCD all generate Kubernetes YAML under the hood.
+If you don't understand the YAML, you can't debug what the tooling produces.
+Week 1 is YAML and kubectl only. Helm comes in Week 2.
 
 ## Daily Plan
 
-1. [Day 1 Namespaces and Deployments](day-1.md) ✅ — namespace setup, hello-web deployment, rollout basics
-2. [Day 2 Helm and the Real App](day-2.md) — deploy api/frontend/worker via Helm to dev namespace
-3. [Day 3 Health Probes](day-3.md) — readiness/liveness probes already in Helm charts; break and observe
-4. [Day 4 Rollouts and Rollbacks](day-4.md) — Helm upgrade/rollback, kubectl rollout commands
-5. [Day 5 Resource Requests and Limits](day-5.md) — tune requests/limits, observe scheduling and throttling
+1. [Day 1 Namespaces and Deployments](day-1.md) ✅ — namespace setup, first deployment, rollout basics
+2. [Day 2 Deploy the Real App](day-2.md) — apply raw manifests for api, frontend, worker
+3. [Day 3 Health Probes](day-3.md) — readiness/liveness in the manifest; break and observe
+4. [Day 4 Rollouts and Rollbacks](day-4.md) — rolling update, rollback, revision history
+5. [Day 5 Resource Requests and Limits](day-5.md) — scheduling, OOMKilled, throttling
+
+## Manifests Used This Week
+
+All raw YAML lives in `k8s/manifests/dev/`:
+
+| File | What it creates |
+|---|---|
+| `api-deployment.yaml` | API Deployment, 2 replicas, probes, resources |
+| `api-service.yaml` | ClusterIP Service for api |
+| `frontend-deployment.yaml` | Frontend Deployment, 2 replicas, probes, resources |
+| `frontend-service.yaml` | ClusterIP Service for frontend |
+| `worker-deployment.yaml` | Worker Deployment, 1 replica, resources |
 
 ## Exit Criteria
 
 By end of Week 1 you can:
 
-- Deploy and upgrade all 3 services via Helm without looking up syntax
-- Explain what readiness vs liveness probe failure causes
-- Perform a Helm rollback and explain what changed
-- Read `kubectl describe pod` and identify resource pressure vs probe failure
+- Read any Kubernetes Deployment YAML and explain every field
+- Apply, update, and delete resources with kubectl
+- Explain readiness vs liveness probe failure behavior from observed output
+- Perform a rollback and explain what `revisionHistoryLimit` means
+- Diagnose a Pending pod vs OOMKilled pod from `kubectl describe`
 
-## Key Concepts Introduced This Week
+## Week 2 Preview
 
-| Concept | Where you see it |
-|---|---|
-| Namespace isolation | `k8s/namespaces/` manifests |
-| Helm chart structure | `k8s/helm/api/`, `frontend/`, `worker/` |
-| Rolling update | `strategy.rollingUpdate` in each Deployment template |
-| Readiness probe | `probes.readiness` in Helm values |
-| Liveness probe | `probes.liveness` in Helm values |
-| Resource requests/limits | `resources` block in Helm values |
-| HPA skeleton | `hpa.yaml` template — disabled, enabled in Week 2 |
+Once you can do all of the above with raw manifests, Week 2 introduces Helm.
+At that point you will understand exactly what Helm is wrapping — and why it exists.

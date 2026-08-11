@@ -1,80 +1,84 @@
-# Week 1 Day 2 Runbook - Helm and the Real App
+# Week 1 Day 2 Runbook - Deploy the Real App with Raw Manifests
 
 ## Objective
 
-Deploy the 3-service app (api, frontend, worker) via Helm into the `dev` namespace.
+Apply the 3-service app (api, frontend, worker) to the `dev` namespace using raw YAML manifests.
+No Helm yet — you read, apply, and observe every resource yourself.
 
-## Concept: What is Helm?
+## Manifests Location
 
-Helm is a package manager for Kubernetes. Instead of running `kubectl apply` on individual YAML files, Helm:
-- Groups all Kubernetes resources for one app into a **chart**
-- Lets you pass different **values** per environment (dev, staging, prod)
-- Tracks **releases** so you can upgrade and rollback cleanly
-
-Think of it as: Helm is to Kubernetes what apt/yum is to Linux.
-
-## Prerequisite
-
-ingress-nginx must be installed first. Run the platform pipeline or:
-
-```bash
-helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-helm repo update
-helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
-  --namespace ingress-nginx \
-  --create-namespace \
-  -f projects/azure-terraform-aks/k8s/helm/ingress/ingress-nginx-values.yaml \
-  --wait
+```
+k8s/manifests/dev/
+  api-deployment.yaml
+  api-service.yaml
+  frontend-deployment.yaml
+  frontend-service.yaml
+  worker-deployment.yaml
 ```
 
-## Deploy the App
+## Step 1: Read before you apply
+
+Open each manifest and answer these questions before running anything:
+
+- How many replicas does api have?
+- What port does the api container listen on?
+- What does `ClusterIP` mean for the Service type?
+- What is `terminationGracePeriodSeconds` doing?
+- What is `revisionHistoryLimit: 3` doing?
+
+## Step 2: Apply
 
 ```bash
-# Lint first — catches YAML/template errors before hitting the cluster
-helm lint projects/azure-terraform-aks/k8s/helm/api
-helm lint projects/azure-terraform-aks/k8s/helm/frontend
-helm lint projects/azure-terraform-aks/k8s/helm/worker
-
-# Deploy each chart (using placeholder image until ACR is populated)
-helm upgrade --install api projects/azure-terraform-aks/k8s/helm/api \
-  --namespace dev \
-  -f projects/azure-terraform-aks/k8s/helm/api/values/values-dev.yaml \
-  --wait
-
-helm upgrade --install worker projects/azure-terraform-aks/k8s/helm/worker \
-  --namespace dev \
-  -f projects/azure-terraform-aks/k8s/helm/worker/values/values-dev.yaml \
-  --wait
-
-helm upgrade --install frontend projects/azure-terraform-aks/k8s/helm/frontend \
-  --namespace dev \
-  -f projects/azure-terraform-aks/k8s/helm/frontend/values/values-dev.yaml \
-  --wait
+kubectl apply -f projects/azure-terraform-aks/k8s/manifests/dev/
 ```
 
-## Verify
+This applies all files in the folder at once.
+
+## Step 3: Verify
 
 ```bash
-helm list -n dev
+kubectl get deployments -n dev
 kubectl get pods -n dev -o wide
-kubectl get svc -n dev
-kubectl get ingress -n dev
+kubectl get services -n dev
+kubectl get replicasets -n dev
 ```
 
-## Concepts to Understand from the Output
+## Step 4: Understand what each command shows
 
-- `helm list` shows release name, chart version, app version, and status
-- Each Helm release maps to one or more Kubernetes resources
-- `kubectl get svc` — api and frontend have ClusterIP (internal only); ingress-nginx has LoadBalancer (external)
-- `kubectl get ingress` — frontend-ingress routes external traffic to the frontend Service
+```bash
+# Shows one row per Deployment — READY column = running/desired replicas
+kubectl get deployments -n dev
+
+# Shows individual pods — NODE column shows which node each pod landed on
+kubectl get pods -n dev -o wide
+
+# Shows Services — CLUSTER-IP is the internal IP other pods use to reach this service
+kubectl get services -n dev
+
+# ReplicaSets are what the Deployment controls — each rollout creates a new RS
+kubectl get replicasets -n dev
+```
+
+## Step 5: Inspect a running pod
+
+```bash
+# Replace <pod-name> with an actual pod name from get pods
+kubectl describe pod <pod-name> -n dev
+kubectl logs <pod-name> -n dev
+```
+
+In `describe`, look at:
+- `Conditions` — is Ready True?
+- `Events` — what happened when the pod started?
+- `Containers` — what image, ports, probes, and limits are configured?
 
 ## Practice Drill
 
-Inspect the Helm release manifest to see every Kubernetes resource it manages:
+Delete one api pod manually and watch Kubernetes recreate it:
 
 ```bash
-helm get manifest api -n dev
-helm get values api -n dev
+kubectl delete pod <api-pod-name> -n dev
+kubectl get pods -n dev -w        # -w watches for changes in real time
 ```
 
-Compare what you see in the chart files vs what Helm actually rendered in the cluster.
+Why does a new pod appear? Because the Deployment tells the ReplicaSet to maintain 2 replicas at all times.

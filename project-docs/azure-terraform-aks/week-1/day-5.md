@@ -2,7 +2,7 @@
 
 ## Objective
 
-Understand and tune CPU/memory requests and limits; observe scheduling and throttling behavior.
+Tune CPU and memory in the raw manifest and observe scheduling and runtime behavior.
 
 ## Concept: Requests vs Limits
 
@@ -10,64 +10,86 @@ Understand and tune CPU/memory requests and limits; observe scheduling and throt
 |---|---|---|
 | `requests.cpu` | Minimum CPU the pod needs | Scheduler uses this to find a node with enough capacity |
 | `requests.memory` | Minimum memory the pod needs | Scheduler uses this to find a node with enough capacity |
-| `limits.cpu` | Maximum CPU the pod can use | Pod is **throttled** (slowed) if it exceeds this — never killed |
+| `limits.cpu` | Maximum CPU the pod can use | Pod is **throttled** (slowed) — never killed |
 | `limits.memory` | Maximum memory the pod can use | Pod is **OOMKilled** (killed) if it exceeds this |
 
 The api chart default:
 - requests: 100m CPU, 128Mi memory
 - limits: 500m CPU, 256Mi memory
 
-## View Current Resource Allocation
+Open `k8s/manifests/dev/api-deployment.yaml` and find the `resources` block.
 
-```bash
-kubectl describe nodes | grep -A 10 "Allocated resources"
-kubectl top pods -n dev        # requires metrics-server
-kubectl top nodes
+## Experiment 1: Artificially tight memory limit (OOMKilled)
+
+Edit `api-deployment.yaml` — set an impossibly small memory limit:
+
+```yaml
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "4Mi"    # nginx needs far more than this
 ```
 
-## Experiment 1: Artificially tight memory limit
-
 ```bash
-helm upgrade api projects/azure-terraform-aks/k8s/helm/api \
-  --namespace dev \
-  -f projects/azure-terraform-aks/k8s/helm/api/values/values-dev.yaml \
-  --set resources.limits.memory=16Mi \
-  --wait --timeout 60s || true
-
-kubectl get pods -n dev
-kubectl describe pod -n dev -l app=api | grep -A 5 "OOMKilled\|Reason\|Last State"
+kubectl apply -f projects/azure-terraform-aks/k8s/manifests/dev/api-deployment.yaml
+kubectl get pods -n dev -w
+kubectl describe pod -n dev -l app=api | grep -A 5 "OOMKilled\|Last State\|Reason"
 ```
 
-What you see: pod enters `OOMKilled` state and Kubernetes restarts it repeatedly (CrashLoopBackOff).
+What you see: pod enters `OOMKilled` then `CrashLoopBackOff` as Kubernetes restarts it repeatedly.
 
-## Experiment 2: Impossible request (unschedulable)
+## Experiment 2: Impossible CPU request (Pending)
+
+Edit `api-deployment.yaml` — set an impossible CPU request:
+
+```yaml
+resources:
+  requests:
+    cpu: "100"       # 100 cores — no node has this
+    memory: "128Mi"
+```
 
 ```bash
-helm upgrade api projects/azure-terraform-aks/k8s/helm/api \
-  --namespace dev \
-  -f projects/azure-terraform-aks/k8s/helm/api/values/values-dev.yaml \
-  --set resources.requests.cpu=100 \
-  --wait --timeout 60s || true
-
-kubectl get pods -n dev         # pod stuck in Pending
+kubectl apply -f projects/azure-terraform-aks/k8s/manifests/dev/api-deployment.yaml
+kubectl get pods -n dev              # new pod stays Pending
 kubectl describe pod -n dev -l app=api | grep -A 10 "Events"
 ```
 
-What you see: `0/3 nodes are available: Insufficient cpu` — scheduler cannot find a node with 100 CPU cores.
+What you see: `0/3 nodes are available: Insufficient cpu` — scheduler cannot place the pod.
 
-## Restore Sane Values
+## Restore
+
+Revert the resources block to the original values and re-apply:
+
+```yaml
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "256Mi"
+```
 
 ```bash
-helm upgrade api projects/azure-terraform-aks/k8s/helm/api \
-  --namespace dev \
-  -f projects/azure-terraform-aks/k8s/helm/api/values/values-dev.yaml \
-  --wait
+kubectl apply -f projects/azure-terraform-aks/k8s/manifests/dev/api-deployment.yaml
+kubectl rollout status deployment/api -n dev
 ```
 
 ## Key Takeaway
 
-- **Pending pod** = scheduling failure (requests too high, no node has capacity)
-- **OOMKilled** = memory limit hit at runtime (process used more than allowed)
-- **CPU throttling** = limit hit at runtime (process slowed, not killed — harder to detect)
-- Setting requests without limits is risky — pod can consume all node memory
-- Setting limits without requests means Kubernetes schedules the pod on any node, possibly overcommitting
+- **Pending pod** = scheduling failure (requests too high, no node fits)
+- **OOMKilled** = memory limit exceeded at runtime (process killed by kernel)
+- **CPU throttling** = limit hit at runtime (process slowed, not killed — harder to detect without metrics)
+- Always set both requests AND limits in production
+- In Week 2, ResourceQuota will enforce limits at the namespace level — you cannot deploy without them
+
+## Week 2 Preview
+
+Now that you understand every field in the raw YAML, Week 2 introduces:
+1. Helm — you will understand exactly what it templates because you wrote the YAML yourself
+2. ResourceQuota — namespace-level resource caps
+3. HPA — automatic scaling based on CPU/memory
