@@ -86,7 +86,16 @@ This is why replicas matter: one node dying only kills one pod, not both.
 
 - Cluster: `giancucio-aks-dev-eastus2`
 - Namespaces created: `dev`, `staging`, `prod`, `ops`
-- Deployment created in `dev`: `hello-web` (nginx:1.27, 2 replicas)
+- Deployment created in `dev`: `hello-web` (nginx:1.27, 4 replicas after drills)
+- All 3 drills completed successfully
+
+## Lessons Learned
+
+- `kubectl create deployment` defaults to 1 replica — always check defaults when using imperative commands
+- The scheduler automatically spreads pods across nodes — 4 pods across 3 nodes results in 2/1/1 distribution
+- `kubectl rollout undo` reuses the previous ReplicaSet spec — if revision 3 is identical to revision 1, revision 1 is dropped from history
+- Rollout history is stored in the cluster (via ReplicaSets), not on your local machine — any teammate with credentials sees the same history
+- Events in `kubectl describe deployment` are the complete audit trail of every scale up/down action Kubernetes took
 
 ## Practice Drills
 
