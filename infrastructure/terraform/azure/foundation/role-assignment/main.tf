@@ -1,8 +1,6 @@
-resource "azurerm_resource" "this" {
-  name                = var.name
-  type                = "Microsoft.Authorization/roleAssignments"
-  api_version         = "2022-04-01-preview"
-  location            = var.location
-  resource_group_name = var.resource_group_name
-  properties          = {}
+resource "azurerm_role_assignment" "this" {
+  scope                = var.scope
+  role_definition_name = var.role_definition_name
+  principal_id         = var.principal_id
+  principal_type       = var.principal_type
 }

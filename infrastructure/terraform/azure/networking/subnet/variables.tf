@@ -1,23 +1,19 @@
-variable "vnetName" {
-  type    = string
-  default = "vnet-portfolio"
+variable "virtual_network_name" {
+  type        = string
+  description = "Virtual network containing the subnet."
 }
 
-variable "subnetName" {
-  type    = string
-  default = "subnet1"
+variable "subnet_name" {
+  type        = string
+  description = "Subnet name."
 }
 
-variable "addressPrefix" {
-  type    = string
-  default = "10.0.1.0/24"
+variable "address_prefixes" {
+  type        = list(string)
+  description = "Address prefixes assigned to the subnet."
 }
 
-variable "location" {
-  type    = string
-  default = "eastus"
-}
 variable "resource_group_name" {
-  type    = string
-  default = "example-rg"
+  type        = string
+  description = "Resource group containing the virtual network."
 }

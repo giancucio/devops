@@ -1,5 +1,10 @@
-output "subnetId" {
-  description = "Auto-generated output (set value in module implementation)"
-  value       = "TODO: set appropriate resource attribute"
+output "id" {
+  description = "Subnet resource ID."
+  value       = azurerm_subnet.this.id
+}
+
+output "name" {
+  description = "Subnet name."
+  value       = azurerm_subnet.this.name
 }
 

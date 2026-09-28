@@ -1,0 +1,65 @@
+steps:
+  - checkout: self
+
+  - task: TerraformInstaller@1
+    displayName: Install Terraform
+    inputs:
+      terraformVersion: $(terraformVersion)
+
+  - task: AzureCLI@2
+    displayName: Terraform Init
+    inputs:
+      azureSubscription: $(serviceConnection)
+      scriptType: bash
+      scriptLocation: inlineScript
+      workingDirectory: $(workingDirectory)
+      inlineScript: |
+        terraform init \
+          -backend-config="resource_group_name=$(backendResourceGroupName)" \
+          -backend-config="storage_account_name=$(backendStorageAccountName)" \
+          -backend-config="container_name=$(backendContainerName)" \
+          -backend-config="key=$(backendKey)" \
+          -backend-config="use_azuread_auth=true" \
+          -backend-config="use_cli=true"
+
+  - task: AzureCLI@2
+    displayName: Terraform Fmt Check
+    inputs:
+      azureSubscription: $(serviceConnection)
+      scriptType: bash
+      scriptLocation: inlineScript
+      workingDirectory: $(workingDirectory)
+      inlineScript: terraform fmt -check -recursive
+
+  - task: AzureCLI@2
+    displayName: Terraform Validate
+    inputs:
+      azureSubscription: $(serviceConnection)
+      scriptType: bash
+      scriptLocation: inlineScript
+      workingDirectory: $(workingDirectory)
+      inlineScript: terraform validate
+
+  - task: AzureCLI@2
+    displayName: Terraform Plan
+    inputs:
+      azureSubscription: $(serviceConnection)
+      scriptType: bash
+      scriptLocation: inlineScript
+      workingDirectory: $(workingDirectory)
+      inlineScript: |
+        if [ ! -f "$(tfvarsFile)" ]; then
+          echo "ERROR: $(tfvarsFile) was not found in $(workingDirectory)."
+          exit 1
+        fi
+
+        terraform plan \
+          -var-file="$(tfvarsFile)" \
+          -out=tfplan
+
+  - task: PublishPipelineArtifact@1
+    displayName: Publish $(stack) plan
+    inputs:
+      targetPath: '$(workingDirectory)/tfplan'
+      artifact: 'tfplan-$(stack)'
+      publishLocation: pipeline

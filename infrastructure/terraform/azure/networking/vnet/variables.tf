@@ -1,19 +1,25 @@
-variable "vnetName" {
-  type    = string
-  default = "vnet-portfolio"
+variable "vnet_name" {
+  type        = string
+  description = "Virtual network name."
 }
 
 variable "location" {
-  type    = string
-  default = "eastus"
+  type        = string
+  description = "Azure region for the virtual network."
 }
 
-variable "addressPrefix" {
-  type    = string
-  default = "10.0.0.0/16"
+variable "address_space" {
+  type        = list(string)
+  description = "Address spaces assigned to the virtual network."
 }
 
 variable "resource_group_name" {
-  type    = string
-  default = "example-rg"
+  type        = string
+  description = "Resource group containing the virtual network."
+}
+
+variable "tags" {
+  type        = map(string)
+  description = "Tags applied to the virtual network."
+  default     = {}
 }

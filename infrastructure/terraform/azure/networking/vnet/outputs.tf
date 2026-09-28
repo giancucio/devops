@@ -1,5 +1,10 @@
-output "vnetId" {
-  description = "Auto-generated output (set value in module implementation)"
-  value       = "TODO: set appropriate resource attribute"
+output "id" {
+  description = "Virtual network resource ID."
+  value       = azurerm_virtual_network.this.id
+}
+
+output "name" {
+  description = "Virtual network name."
+  value       = azurerm_virtual_network.this.name
 }
 

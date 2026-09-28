@@ -1,68 +1,46 @@
 # Azure AKS Infrastructure (Terraform)
 
-This project provisions an Azure Kubernetes Service (AKS) environment using shared Terraform modules from this repository's Azure module catalog.
+This portfolio project provisions Azure infrastructure for AKS with reusable modules from `infrastructure/terraform/azure`. The Terraform directory contains four independent roots, each with a separate Azure Storage state key.
 
-## What this project creates
+## Stack Layout
 
-- An Azure Resource Group
-- A Virtual Network using the shared module at `infrastructure/terraform/azure/networking/vnet`
-- An AKS cluster using the shared module at `infrastructure/terraform/azure/compute/aks`
+| Directory | Responsibility | State key |
+|---|---|---|
+| `terraform/01_foundation` | Resource group, Log Analytics, Application Insights, Azure Monitor workspace, and Grafana | `aks-dev-01_foundation.tfstate` |
+| `terraform/02_security` | Key Vault | `aks-dev-02_security.tfstate` |
+| `terraform/03_network` | Virtual network and AKS subnet | `aks-dev-03_network.tfstate` |
+| `terraform/04_workload` | Container Registry, AKS, and ACR pull role assignment | `aks-dev-04_workload.tfstate` |
 
-## Structure
+Each stack has its own `backend.tf`, `provider.tf`, `main.tf`, `variables.tf`, `outputs.tf`, and `environments/dev.tfvars`. Deploy in numeric order. Security and network both consume foundation outputs; workload consumes foundation and network outputs through `terraform_remote_state`.
 
-- `terraform/` contains the Terraform root module for this project.
+The Key Vault uses RBAC authorization, purge protection, and disabled public network access. Configure private connectivity before workloads need to retrieve secrets from it. ACR, Azure Monitor workspace, and managed Grafana are declared directly because the shared catalog does not have modules for them.
 
-## Prerequisites
+## Existing State Warning
 
-- Terraform 1.6 or newer
-- Azure CLI logged in (`az login`)
-- Sufficient Azure RBAC permissions to create resource groups, virtual networks, and AKS clusters
+The previous single-root configuration used the state key `aks.tfstate`. The new stack keys are separate and are not automatically populated from it. **Do not enable pipeline Apply or apply any new stack until the existing state has been backed up, inspected, and split into the four stack states.** Terraform `moved` blocks cannot migrate resources between separate state files. The pipeline's `stateMigrationComplete` run parameter defaults to `false` and should only be set to `true` after that migration and review are complete. Keep the old state as a recoverable backup.
 
-## Deploy
+## Azure DevOps
 
-1. Copy `terraform/terraform.tfvars.example` to `terraform/terraform.tfvars`
-2. Update values for your environment
-3. Run Terraform:
+The pipeline in [azure-pipelines.yml](azure-pipelines.yml) has four sequential stages: Foundation, Security, Network, and Workload. Each stage formats, validates, and plans its own stack, publishes a stack-specific plan, and requires manual approval before applying on `main`. Namespace bootstrap runs after the Workload apply. The pipeline is gated by the `stateMigrationComplete` run parameter, which must remain `false` until the existing state has been split and verified.
 
-```powershell
-Set-Location terraform
-terraform init
-terraform plan -out=tfplan
-terraform apply tfplan
-```
+The Azure service connection and state storage settings are configured as pipeline variables. The state storage account and container must already exist, and the service connection needs access to both the state blobs and deployed resources.
 
-## Destroy
+## Local Checks
+
+Run each command from the selected stack directory. Use that stack's environment file and a unique backend key. For example:
 
 ```powershell
-Set-Location terraform
-terraform destroy
+Set-Location terraform/01_foundation
+terraform init `
+	-backend-config="resource_group_name=<state-resource-group>" `
+	-backend-config="storage_account_name=<state-storage-account>" `
+	-backend-config="container_name=<state-container>" `
+	-backend-config="key=aks-dev-01_foundation.tfstate" `
+	-backend-config="use_azuread_auth=true" `
+	-backend-config="use_cli=true"
+terraform fmt -check -recursive
+terraform validate
+terraform plan -var-file="environments/dev.tfvars"
 ```
 
-## Notes
-
-- This root module intentionally consumes shared modules from `infrastructure/terraform/azure`.
-- Some shared modules in this repository still contain placeholder outputs; this project uses data sources for runtime outputs where needed.
-
-## Azure DevOps Pipeline
-
-This project includes [azure-pipelines.yml](azure-pipelines.yml) with two stages:
-
-- `ValidateAndPlan`: runs `terraform init`, `fmt`, `validate`, and `plan`, then publishes a plan text artifact
-- `Apply`: runs only on `main` when `applyChanges` is `true`
-
-### Required Pipeline Variables
-
-- `azureServiceConnection`: Name of your Azure Resource Manager service connection
-- `applyChanges`: Set to `true` to enable apply stage on main (default `false`)
-- `environmentName`: Azure DevOps environment name used by the deployment job
-
-### Optional Remote State Variables
-
-Set these when you want to use Azure Storage backend in the pipeline:
-
-- `tfStateResourceGroup`
-- `tfStateStorageAccount`
-- `tfStateContainer`
-- `tfStateKey`
-
-If these are left empty, pipeline runs with the default local backend behavior in this Terraform root module.
+Repeat for each layer in order, changing directories and the backend key to match. A plan is not safe to apply until the existing single state has been migrated and its resource addresses verified.

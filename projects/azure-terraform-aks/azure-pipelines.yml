@@ -1,3 +1,9 @@
+parameters:
+  - name: stateMigrationComplete
+    displayName: Existing state has been migrated and reviewed
+    type: boolean
+    default: false
+
 trigger: none
 
 pr: none
@@ -7,9 +13,6 @@ name: aks-terraform-$(Date:yyyyMMdd)$(Rev:.r)
 variables:
   - name: terraformVersion
     value: '1.15.8'
-
-  - name: workingDirectory
-    value: 'projects/azure-terraform-aks/terraform'
 
   - name: serviceConnection
     value: 'giancucio3cscwif'
@@ -22,9 +25,6 @@ variables:
 
   - name: backendContainerName
     value: 'tfstate'
-
-  - name: backendKey
-    value: 'aks.tfstate'
 
   - name: tfvarsFile
     value: 'environments/dev.tfvars'
@@ -39,85 +39,23 @@ pool:
   vmImage: ubuntu-latest
 
 stages:
-  - stage: Plan
-    displayName: Terraform Plan
+  - stage: Foundation
+    displayName: 01 Foundation
+    condition: and(succeeded(), eq('${{ parameters.stateMigrationComplete }}', 'true'))
+    variables:
+      - name: stack
+        value: 01_foundation
+      - name: workingDirectory
+        value: projects/azure-terraform-aks/terraform/01_foundation
+      - name: backendKey
+        value: aks-dev-01_foundation.tfstate
     jobs:
       - job: Plan
-        displayName: Terraform Plan
         steps:
-          - checkout: self
-
-          - task: TerraformInstaller@1
-            displayName: Install Terraform
-            inputs:
-              terraformVersion: $(terraformVersion)
-
-          - task: AzureCLI@2
-            displayName: Terraform Init
-            inputs:
-              azureSubscription: $(serviceConnection)
-              scriptType: bash
-              scriptLocation: inlineScript
-              workingDirectory: $(workingDirectory)
-              inlineScript: |
-                terraform init \
-                  -backend-config="resource_group_name=$(backendResourceGroupName)" \
-                  -backend-config="storage_account_name=$(backendStorageAccountName)" \
-                  -backend-config="container_name=$(backendContainerName)" \
-                  -backend-config="key=$(backendKey)"
-
-          - task: AzureCLI@2
-            displayName: Terraform Fmt Check
-            inputs:
-              azureSubscription: $(serviceConnection)
-              scriptType: bash
-              scriptLocation: inlineScript
-              workingDirectory: $(workingDirectory)
-              inlineScript: |
-                terraform fmt -check -recursive
-
-          - task: AzureCLI@2
-            displayName: Terraform Validate
-            inputs:
-              azureSubscription: $(serviceConnection)
-              scriptType: bash
-              scriptLocation: inlineScript
-              workingDirectory: $(workingDirectory)
-              inlineScript: |
-                terraform validate
-
-          - task: AzureCLI@2
-            displayName: Terraform Plan
-            inputs:
-              azureSubscription: $(serviceConnection)
-              scriptType: bash
-              scriptLocation: inlineScript
-              workingDirectory: $(workingDirectory)
-              inlineScript: |
-                if [ ! -f "$(tfvarsFile)" ]; then
-                  echo "ERROR: $(tfvarsFile) was not found in $(workingDirectory)."
-                  echo "If this file is ignored locally, commit a non-secret tfvars file (or use pipeline variables) for CI/CD."
-                  exit 1
-                fi
-
-                terraform plan \
-                  -var-file="$(tfvarsFile)" \
-                  -out=tfplan
-
-          - task: PublishPipelineArtifact@1
-            displayName: Publish tfplan
-            inputs:
-              targetPath: '$(workingDirectory)/tfplan'
-              artifact: 'tfplan'
-              publishLocation: 'pipeline'
-
-  - stage: Apply
-    displayName: Terraform Apply
-    dependsOn: Plan
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
-    jobs:
-      - job: WaitForApproval
-        displayName: Manual Approval
+          - template: projects/azure-terraform-aks/pipelines/terraform-plan-steps.yml
+      - job: Approval
+        dependsOn: Plan
+        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
         pool: server
         timeoutInMinutes: 1440
         steps:
@@ -125,60 +63,118 @@ stages:
             timeoutInMinutes: 1440
             inputs:
               notifyUsers: ''
-              instructions: 'Review Terraform plan output artifact before approving apply.'
-              onTimeout: 'reject'
-
+              instructions: 'Review the 01_foundation Terraform plan artifact before approving apply.'
+              onTimeout: reject
       - job: Apply
-        displayName: Terraform Apply
-        dependsOn: WaitForApproval
+        dependsOn: Approval
+        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
         steps:
-          - checkout: self
+          - template: projects/azure-terraform-aks/pipelines/terraform-apply-steps.yml
 
-          - task: TerraformInstaller@1
-            displayName: Install Terraform
-            inputs:
-              terraformVersion: $(terraformVersion)
-
-          - task: DownloadPipelineArtifact@2
-            displayName: Download tfplan
-            inputs:
-              artifact: 'tfplan'
-              path: '$(workingDirectory)'
-
-          - task: AzureCLI@2
-            displayName: Terraform Init
-            inputs:
-              azureSubscription: $(serviceConnection)
-              scriptType: bash
-              scriptLocation: inlineScript
-              workingDirectory: $(workingDirectory)
-              inlineScript: |
-                terraform init \
-                  -backend-config="resource_group_name=$(backendResourceGroupName)" \
-                  -backend-config="storage_account_name=$(backendStorageAccountName)" \
-                  -backend-config="container_name=$(backendContainerName)" \
-                  -backend-config="key=$(backendKey)"
-
-          - task: AzureCLI@2
-            displayName: Terraform Apply
-            inputs:
-              azureSubscription: $(serviceConnection)
-              scriptType: bash
-              scriptLocation: inlineScript
-              workingDirectory: $(workingDirectory)
-              inlineScript: |
-                terraform apply -auto-approve tfplan
-
-  - stage: Bootstrap
-    displayName: Kubernetes Bootstrap
-    dependsOn: Apply
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  - stage: Security
+    displayName: 02 Security
+    dependsOn: Foundation
+    condition: and(succeeded(), eq('${{ parameters.stateMigrationComplete }}', 'true'))
+    variables:
+      - name: stack
+        value: 02_security
+      - name: workingDirectory
+        value: projects/azure-terraform-aks/terraform/02_security
+      - name: backendKey
+        value: aks-dev-02_security.tfstate
     jobs:
-      - job: ApplyNamespaces
-        displayName: Apply Namespace Manifests
+      - job: Plan
+        steps:
+          - template: projects/azure-terraform-aks/pipelines/terraform-plan-steps.yml
+      - job: Approval
+        dependsOn: Plan
+        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+        pool: server
+        timeoutInMinutes: 1440
+        steps:
+          - task: ManualValidation@0
+            timeoutInMinutes: 1440
+            inputs:
+              notifyUsers: ''
+              instructions: 'Review the 02_security Terraform plan artifact before approving apply.'
+              onTimeout: reject
+      - job: Apply
+        dependsOn: Approval
+        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+        steps:
+          - template: projects/azure-terraform-aks/pipelines/terraform-apply-steps.yml
+
+  - stage: Network
+    displayName: 03 Network
+    dependsOn: Security
+    condition: and(succeeded(), eq('${{ parameters.stateMigrationComplete }}', 'true'))
+    variables:
+      - name: stack
+        value: 03_network
+      - name: workingDirectory
+        value: projects/azure-terraform-aks/terraform/03_network
+      - name: backendKey
+        value: aks-dev-03_network.tfstate
+    jobs:
+      - job: Plan
+        steps:
+          - template: projects/azure-terraform-aks/pipelines/terraform-plan-steps.yml
+      - job: Approval
+        dependsOn: Plan
+        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+        pool: server
+        timeoutInMinutes: 1440
+        steps:
+          - task: ManualValidation@0
+            timeoutInMinutes: 1440
+            inputs:
+              notifyUsers: ''
+              instructions: 'Review the 03_network Terraform plan artifact before approving apply.'
+              onTimeout: reject
+      - job: Apply
+        dependsOn: Approval
+        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+        steps:
+          - template: projects/azure-terraform-aks/pipelines/terraform-apply-steps.yml
+
+  - stage: Workload
+    displayName: 04 Workload
+    dependsOn: Network
+    condition: and(succeeded(), eq('${{ parameters.stateMigrationComplete }}', 'true'))
+    variables:
+      - name: stack
+        value: 04_workload
+      - name: workingDirectory
+        value: projects/azure-terraform-aks/terraform/04_workload
+      - name: backendKey
+        value: aks-dev-04_workload.tfstate
+    jobs:
+      - job: Plan
+        steps:
+          - template: projects/azure-terraform-aks/pipelines/terraform-plan-steps.yml
+      - job: Approval
+        dependsOn: Plan
+        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+        pool: server
+        timeoutInMinutes: 1440
+        steps:
+          - task: ManualValidation@0
+            timeoutInMinutes: 1440
+            inputs:
+              notifyUsers: ''
+              instructions: 'Review the 04_workload Terraform plan artifact before approving apply.'
+              onTimeout: reject
+      - job: Apply
+        dependsOn: Approval
+        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+        steps:
+          - template: projects/azure-terraform-aks/pipelines/terraform-apply-steps.yml
+      - job: Bootstrap
+        displayName: Kubernetes Bootstrap
+        dependsOn: Apply
+        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
         steps:
           - checkout: self
-
           - task: AzureCLI@2
             displayName: Apply Namespaces
             inputs:

@@ -1,5 +1,10 @@
-output "workspaceId" {
-  description = "Auto-generated output (set value in module implementation)"
-  value       = "TODO: set appropriate resource attribute"
+output "id" {
+  description = "Log Analytics workspace resource ID."
+  value       = azurerm_log_analytics_workspace.this.id
+}
+
+output "name" {
+  description = "Log Analytics workspace name."
+  value       = azurerm_log_analytics_workspace.this.name
 }
 

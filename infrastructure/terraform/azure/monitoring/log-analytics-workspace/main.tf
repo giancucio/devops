@@ -1,8 +1,8 @@
-resource "azurerm_resource" "this" {
-  name                = var.workspaceName
-  type                = "Microsoft.OperationalInsights/workspaces"
-  api_version         = "2021-06-01"
+resource "azurerm_log_analytics_workspace" "this" {
+  name                = var.workspace_name
   location            = var.location
   resource_group_name = var.resource_group_name
-  properties          = {}
+  sku                 = var.sku
+  retention_in_days   = var.retention_in_days
+  tags                = var.tags
 }

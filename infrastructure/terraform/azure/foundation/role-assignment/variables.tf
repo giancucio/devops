@@ -1,15 +1,21 @@
-variable "principalId" {
-  type    = string
-  default = "00000000-0000-0000-0000-000000000000"
+variable "principal_id" {
+  type        = string
+  description = "Object ID of the principal receiving the role."
 }
 
-variable "roleDefinitionId" {
-  type    = string
-  default = "/subscriptions/.../providers/Microsoft.Authorization/roleDefinitions/..."
+variable "role_definition_name" {
+  type        = string
+  description = "Built-in or custom role definition name."
 }
 
 variable "scope" {
-  type    = string
-  default = "/subscriptions/<subscriptionId>"
+  type        = string
+  description = "Resource ID defining the assignment scope."
+}
+
+variable "principal_type" {
+  type        = string
+  description = "Type of principal receiving the role."
+  default     = null
 }
 

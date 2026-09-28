@@ -1,10 +1,16 @@
 variable "resource_group_name" {
-  type    = string
-  default = "rg-portfolio"
+  type        = string
+  description = "Name of the resource group."
 }
 
 variable "location" {
-  type    = string
-  default = "eastus"
+  type        = string
+  description = "Azure region for the resource group."
+}
+
+variable "tags" {
+  type        = map(string)
+  description = "Tags applied to the resource group."
+  default     = {}
 }
 

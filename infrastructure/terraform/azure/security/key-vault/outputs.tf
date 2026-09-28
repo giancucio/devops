@@ -1,5 +1,10 @@
-output "keyVaultId" {
-  description = "Auto-generated output (set value in module implementation)"
-  value       = "TODO: set appropriate resource attribute"
+output "id" {
+  description = "Key Vault resource ID."
+  value       = azurerm_key_vault.this.id
+}
+
+output "name" {
+  description = "Key Vault name."
+  value       = azurerm_key_vault.this.name
 }
 

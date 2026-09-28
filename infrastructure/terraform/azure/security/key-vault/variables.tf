@@ -1,23 +1,37 @@
-variable "keyVaultName" {
-  type    = string
-  default = "kv-portfolio"
+variable "key_vault_name" {
+  type        = string
+  description = "Globally unique Key Vault name."
 }
 
 variable "location" {
-  type    = string
-  default = "eastus"
+  type        = string
+  description = "Azure region for the Key Vault."
 }
 
-variable "tenantId" {
-  type    = string
-  default = "00000000-0000-0000-0000-000000000000"
+variable "resource_group_name" {
+  type        = string
+  description = "Resource group containing the Key Vault."
+}
+
+variable "tenant_id" {
+  type        = string
+  description = "Microsoft Entra tenant ID for the Key Vault."
 }
 
 variable "sku_name" {
-  type    = string
-  default = "standard"
+  type        = string
+  description = "Key Vault SKU."
+  default     = "standard"
 }
-variable "resource_group_name" {
-  type    = string
-  default = "example-rg"
+
+variable "public_network_access_enabled" {
+  type        = bool
+  description = "Whether public network access is allowed."
+  default     = false
+}
+
+variable "tags" {
+  type        = map(string)
+  description = "Tags applied to the Key Vault."
+  default     = {}
 }

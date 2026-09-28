@@ -1,7 +1,12 @@
 resource "azurerm_key_vault" "this" {
-  name                = var.keyVaultName
-  location            = var.location
-  resource_group_name = var.resource_group_name
-  tenant_id           = "REPLACE_TENANT_ID"
-  sku_name            = var.sku_name
+  name                          = var.key_vault_name
+  location                      = var.location
+  resource_group_name           = var.resource_group_name
+  tenant_id                     = var.tenant_id
+  sku_name                      = var.sku_name
+  rbac_authorization_enabled    = true
+  purge_protection_enabled      = true
+  soft_delete_retention_days    = 90
+  public_network_access_enabled = var.public_network_access_enabled
+  tags                          = var.tags
 }

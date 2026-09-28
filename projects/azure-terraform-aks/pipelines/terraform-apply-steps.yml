@@ -1,0 +1,38 @@
+steps:
+  - checkout: self
+
+  - task: TerraformInstaller@1
+    displayName: Install Terraform
+    inputs:
+      terraformVersion: $(terraformVersion)
+
+  - task: DownloadPipelineArtifact@2
+    displayName: Download $(stack) plan
+    inputs:
+      artifact: 'tfplan-$(stack)'
+      path: '$(workingDirectory)'
+
+  - task: AzureCLI@2
+    displayName: Terraform Init
+    inputs:
+      azureSubscription: $(serviceConnection)
+      scriptType: bash
+      scriptLocation: inlineScript
+      workingDirectory: $(workingDirectory)
+      inlineScript: |
+        terraform init \
+          -backend-config="resource_group_name=$(backendResourceGroupName)" \
+          -backend-config="storage_account_name=$(backendStorageAccountName)" \
+          -backend-config="container_name=$(backendContainerName)" \
+          -backend-config="key=$(backendKey)" \
+          -backend-config="use_azuread_auth=true" \
+          -backend-config="use_cli=true"
+
+  - task: AzureCLI@2
+    displayName: Terraform Apply
+    inputs:
+      azureSubscription: $(serviceConnection)
+      scriptType: bash
+      scriptLocation: inlineScript
+      workingDirectory: $(workingDirectory)
+      inlineScript: terraform apply -auto-approve tfplan

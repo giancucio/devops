@@ -1,8 +1,8 @@
-resource "azurerm_resource" "this" {
-  name                = var.name
-  type                = "Microsoft.Insights/components"
-  api_version         = "2022-06-15"
+resource "azurerm_application_insights" "this" {
+  name                = var.component_name
   location            = var.location
   resource_group_name = var.resource_group_name
-  properties          = {}
+  workspace_id        = var.workspace_id
+  application_type    = var.application_type
+  tags                = var.tags
 }
