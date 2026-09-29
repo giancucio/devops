@@ -79,11 +79,30 @@ jobs:
             -var-file="environments/dev.tfvars" \
             -out=tfplan
 
+      - name: Create readable Terraform plan
+        working-directory: ${{ env.TF_WORKING_DIRECTORY }}
+        run: terraform show -no-color tfplan > tfplan.txt
+
+      - name: Add Terraform plan to run summary
+        working-directory: ${{ env.TF_WORKING_DIRECTORY }}
+        run: |
+          {
+            echo "## Terraform plan: ${{ inputs.stage }}"
+            echo
+            echo '```text'
+            sed -n '1,500p' tfplan.txt
+            echo '```'
+            echo
+            echo "The complete plan is available in artifact aks-${{ inputs.stage }}-tfplan-${{ github.run_id }}."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Publish Terraform plan
         uses: actions/upload-artifact@v4
         with:
           name: aks-${{ inputs.stage }}-tfplan-${{ github.run_id }}
-          path: ${{ env.TF_WORKING_DIRECTORY }}/tfplan
+          path: |
+            ${{ env.TF_WORKING_DIRECTORY }}/tfplan
+            ${{ env.TF_WORKING_DIRECTORY }}/tfplan.txt
           if-no-files-found: error
           retention-days: 7
 
