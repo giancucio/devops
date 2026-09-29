@@ -8,10 +8,18 @@ permissions:
   id-token: write
 
 jobs:
+  approval:
+    name: Approve Kubernetes bootstrap
+    runs-on: ubuntu-latest
+    environment: aks-apply
+    steps:
+      - name: Bootstrap approved
+        run: echo "Kubernetes bootstrap approved"
+
   bootstrap:
     name: Apply Kubernetes namespaces
     runs-on: ubuntu-latest
-    environment: aks-apply
+    needs: approval
     steps:
       - name: Checkout
         uses: actions/checkout@v4

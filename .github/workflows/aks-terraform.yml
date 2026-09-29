@@ -106,11 +106,19 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  apply:
-    name: ${{ inputs.stage }} apply
+  apply_approval:
+    name: ${{ inputs.stage }} approve apply
     needs: plan
     runs-on: ubuntu-latest
     environment: aks-apply
+    steps:
+      - name: Apply approved
+        run: echo "Apply approved for ${{ inputs.stage }}"
+
+  apply:
+    name: ${{ inputs.stage }} apply
+    needs: apply_approval
+    runs-on: ubuntu-latest
     env:
       TF_IN_AUTOMATION: true
     steps:

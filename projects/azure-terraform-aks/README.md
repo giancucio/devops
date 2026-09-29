@@ -29,7 +29,7 @@ The Azure service connection and state storage settings are configured as pipeli
 
 ## GitHub Actions
 
-The repository also includes [aks-terraform.yml](../../.github/workflows/aks-terraform.yml). Run it manually from the Actions tab and select one stage. Plan runs immediately, then Apply pauses for approval through the protected GitHub Environment named `aks-apply`; configure required reviewers for that environment in repository settings. Kubernetes namespace bootstrap is separate in [aks-bootstrap.yml](../../.github/workflows/aks-bootstrap.yml), so it does not appear on infrastructure runs.
+The repository also includes [aks-terraform.yml](../../.github/workflows/aks-terraform.yml). Run it manually from the Actions tab and select one stage. Plan runs immediately, then an approval-only job pauses through the protected GitHub Environment named `aks-apply`; Apply runs afterward using the same branch-based Azure OIDC identity as Plan. Configure required reviewers for that environment in repository settings. Kubernetes namespace bootstrap is separate in [aks-bootstrap.yml](../../.github/workflows/aks-bootstrap.yml), so it does not appear on infrastructure runs.
 
 Configure these repository secrets for OIDC authentication:
 
