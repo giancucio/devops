@@ -5,8 +5,3 @@ tfstate_storage_account_name = "giancuciotfstatesa"
 tfstate_container_name       = "tfstate"
 key_vault_name               = "giancucioaksdevkv"
 
-tags = {
-  environment = "dev"
-  project     = "azure-terraform-aks"
-  owner       = "gian"
-}

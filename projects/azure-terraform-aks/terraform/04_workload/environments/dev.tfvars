@@ -19,8 +19,3 @@ network_profile = {
   dns_service_ip      = "10.250.0.10"
 }
 
-tags = {
-  environment = "dev"
-  project     = "azure-terraform-aks"
-  owner       = "gian"
-}

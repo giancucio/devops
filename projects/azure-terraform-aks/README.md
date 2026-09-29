@@ -13,6 +13,8 @@ This portfolio project provisions Azure infrastructure for AKS with reusable mod
 
 Each stack has its own `backend.tf`, `provider.tf`, `main.tf`, `variables.tf`, `outputs.tf`, and `environments/dev.tfvars`. Deploy in numeric order. Security and network both consume foundation outputs; workload consumes foundation and network outputs through `terraform_remote_state`.
 
+The shared `terraform/terraform.tfvars` file supplies values used by all four stacks, including the `deployed_by = "Gian Cucio"` resource tag. The pipeline loads this file together with each stack's environment-specific tfvars file.
+
 The Key Vault uses RBAC authorization, purge protection, and disabled public network access. Configure private connectivity before workloads need to retrieve secrets from it. ACR, Azure Monitor workspace, and managed Grafana are declared directly because the shared catalog does not have modules for them.
 
 ## Existing State Warning
@@ -40,7 +42,9 @@ terraform init `
 	-backend-config="use_cli=true"
 terraform fmt -check -recursive
 terraform validate
-terraform plan -var-file="environments/dev.tfvars"
+terraform plan \
+	-var-file="../terraform.tfvars" \
+	-var-file="environments/dev.tfvars"
 ```
 
 Repeat for each layer in order, changing directories and the backend key to match. A plan is not safe to apply until the existing single state has been migrated and its resource addresses verified.

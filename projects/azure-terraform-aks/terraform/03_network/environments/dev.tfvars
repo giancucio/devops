@@ -8,8 +8,3 @@ vnet_address_space           = ["10.60.0.0/16"]
 aks_subnet_name              = "snet-aks-dev-eastus"
 aks_subnet_prefixes          = ["10.60.1.0/24"]
 
-tags = {
-  environment = "dev"
-  project     = "azure-terraform-aks"
-  owner       = "gian"
-}

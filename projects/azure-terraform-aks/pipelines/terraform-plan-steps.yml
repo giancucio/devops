@@ -54,6 +54,7 @@ steps:
         fi
 
         terraform plan \
+          -var-file="../terraform.tfvars" \
           -var-file="$(tfvarsFile)" \
           -out=tfplan
 

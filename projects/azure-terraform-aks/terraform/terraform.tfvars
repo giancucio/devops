@@ -1,9 +1,6 @@
-environment         = "dev"
-location            = "eastus2"
-resource_group_name = "giancucio-aks-dev-eastus2-rg"
-vnet_name           = "giancucio-aks-dev-eastus2-vnet"
-vnet_cidr           = "10.60.0.0/16"
-aks_cluster_name    = "giancucio-aks-dev-eastus2"
-dns_prefix          = "aksdev"
-node_count          = 3
-node_vm_size        = "Standard_DS2_v2"
+tags = {
+	deployed_by = "Gian Cucio"
+	environment = "dev"
+	project     = "azure-terraform-aks"
+	owner       = "gian"
+}
