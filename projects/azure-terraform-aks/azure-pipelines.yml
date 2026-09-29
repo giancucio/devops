@@ -52,7 +52,7 @@ pool:
 stages:
   - stage: Foundation
     displayName: 01 Foundation
-    condition: or(eq('${{ parameters.stageToRun }}', 'all'), eq('${{ parameters.stageToRun }}', '01_foundation'))
+    condition: or(eq('${{ parameters.stageToRun }}', '01_foundation'), and(succeeded(), eq('${{ parameters.stageToRun }}', 'all')))
     variables:
       - name: stack
         value: 01_foundation
@@ -61,10 +61,23 @@ stages:
       - name: backendKey
         value: aks-dev-01_foundation.tfstate
     jobs:
+      - job: PlanApproval
+        displayName: Approve Terraform plan
+        pool: server
+        timeoutInMinutes: 1440
+        steps:
+          - task: ManualValidation@0
+            timeoutInMinutes: 1440
+            inputs:
+              notifyUsers: ''
+              instructions: 'Click Resume to run the 01_foundation Terraform plan.'
+              onTimeout: reject
       - job: Plan
+        dependsOn: PlanApproval
         steps:
           - template: pipelines/terraform-plan-steps.yml
-      - job: Approval
+      - job: ApplyApproval
+        displayName: Approve Terraform apply
         dependsOn: Plan
         condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('${{ parameters.stateMigrationComplete }}', 'true'))
         pool: server
@@ -74,10 +87,10 @@ stages:
             timeoutInMinutes: 1440
             inputs:
               notifyUsers: ''
-              instructions: 'Review the 01_foundation Terraform plan artifact before approving apply.'
+              instructions: 'Review the 01_foundation Terraform plan artifact, then click Resume to run Apply.'
               onTimeout: reject
       - job: Apply
-        dependsOn: Approval
+        dependsOn: ApplyApproval
         condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('${{ parameters.stateMigrationComplete }}', 'true'))
         steps:
           - template: pipelines/terraform-apply-steps.yml
@@ -85,7 +98,7 @@ stages:
   - stage: Security
     displayName: 02 Security
     dependsOn: Foundation
-    condition: or(eq('${{ parameters.stageToRun }}', 'all'), eq('${{ parameters.stageToRun }}', '02_security'))
+    condition: or(eq('${{ parameters.stageToRun }}', '02_security'), and(succeeded(), eq('${{ parameters.stageToRun }}', 'all')))
     variables:
       - name: stack
         value: 02_security
@@ -94,10 +107,23 @@ stages:
       - name: backendKey
         value: aks-dev-02_security.tfstate
     jobs:
+      - job: PlanApproval
+        displayName: Approve Terraform plan
+        pool: server
+        timeoutInMinutes: 1440
+        steps:
+          - task: ManualValidation@0
+            timeoutInMinutes: 1440
+            inputs:
+              notifyUsers: ''
+              instructions: 'Click Resume to run the 02_security Terraform plan.'
+              onTimeout: reject
       - job: Plan
+        dependsOn: PlanApproval
         steps:
           - template: pipelines/terraform-plan-steps.yml
-      - job: Approval
+      - job: ApplyApproval
+        displayName: Approve Terraform apply
         dependsOn: Plan
         condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('${{ parameters.stateMigrationComplete }}', 'true'))
         pool: server
@@ -107,10 +133,10 @@ stages:
             timeoutInMinutes: 1440
             inputs:
               notifyUsers: ''
-              instructions: 'Review the 02_security Terraform plan artifact before approving apply.'
+              instructions: 'Review the 02_security Terraform plan artifact, then click Resume to run Apply.'
               onTimeout: reject
       - job: Apply
-        dependsOn: Approval
+        dependsOn: ApplyApproval
         condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('${{ parameters.stateMigrationComplete }}', 'true'))
         steps:
           - template: pipelines/terraform-apply-steps.yml
@@ -118,7 +144,7 @@ stages:
   - stage: Network
     displayName: 03 Network
     dependsOn: Security
-    condition: or(eq('${{ parameters.stageToRun }}', 'all'), eq('${{ parameters.stageToRun }}', '03_network'))
+    condition: or(eq('${{ parameters.stageToRun }}', '03_network'), and(succeeded(), eq('${{ parameters.stageToRun }}', 'all')))
     variables:
       - name: stack
         value: 03_network
@@ -127,10 +153,23 @@ stages:
       - name: backendKey
         value: aks-dev-03_network.tfstate
     jobs:
+      - job: PlanApproval
+        displayName: Approve Terraform plan
+        pool: server
+        timeoutInMinutes: 1440
+        steps:
+          - task: ManualValidation@0
+            timeoutInMinutes: 1440
+            inputs:
+              notifyUsers: ''
+              instructions: 'Click Resume to run the 03_network Terraform plan.'
+              onTimeout: reject
       - job: Plan
+        dependsOn: PlanApproval
         steps:
           - template: pipelines/terraform-plan-steps.yml
-      - job: Approval
+      - job: ApplyApproval
+        displayName: Approve Terraform apply
         dependsOn: Plan
         condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('${{ parameters.stateMigrationComplete }}', 'true'))
         pool: server
@@ -140,10 +179,10 @@ stages:
             timeoutInMinutes: 1440
             inputs:
               notifyUsers: ''
-              instructions: 'Review the 03_network Terraform plan artifact before approving apply.'
+              instructions: 'Review the 03_network Terraform plan artifact, then click Resume to run Apply.'
               onTimeout: reject
       - job: Apply
-        dependsOn: Approval
+        dependsOn: ApplyApproval
         condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('${{ parameters.stateMigrationComplete }}', 'true'))
         steps:
           - template: pipelines/terraform-apply-steps.yml
@@ -151,7 +190,7 @@ stages:
   - stage: Workload
     displayName: 04 Workload
     dependsOn: Network
-    condition: or(eq('${{ parameters.stageToRun }}', 'all'), eq('${{ parameters.stageToRun }}', '04_workload'))
+    condition: or(eq('${{ parameters.stageToRun }}', '04_workload'), and(succeeded(), eq('${{ parameters.stageToRun }}', 'all')))
     variables:
       - name: stack
         value: 04_workload
@@ -160,10 +199,23 @@ stages:
       - name: backendKey
         value: aks-dev-04_workload.tfstate
     jobs:
+      - job: PlanApproval
+        displayName: Approve Terraform plan
+        pool: server
+        timeoutInMinutes: 1440
+        steps:
+          - task: ManualValidation@0
+            timeoutInMinutes: 1440
+            inputs:
+              notifyUsers: ''
+              instructions: 'Click Resume to run the 04_workload Terraform plan.'
+              onTimeout: reject
       - job: Plan
+        dependsOn: PlanApproval
         steps:
           - template: pipelines/terraform-plan-steps.yml
-      - job: Approval
+      - job: ApplyApproval
+        displayName: Approve Terraform apply
         dependsOn: Plan
         condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('${{ parameters.stateMigrationComplete }}', 'true'))
         pool: server
@@ -173,10 +225,10 @@ stages:
             timeoutInMinutes: 1440
             inputs:
               notifyUsers: ''
-              instructions: 'Review the 04_workload Terraform plan artifact before approving apply.'
+              instructions: 'Review the 04_workload Terraform plan artifact, then click Resume to run Apply.'
               onTimeout: reject
       - job: Apply
-        dependsOn: Approval
+        dependsOn: ApplyApproval
         condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('${{ parameters.stateMigrationComplete }}', 'true'))
         steps:
           - template: pipelines/terraform-apply-steps.yml
