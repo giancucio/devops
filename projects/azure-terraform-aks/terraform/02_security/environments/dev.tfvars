@@ -3,5 +3,5 @@ environment                  = "dev"
 tfstate_resource_group_name  = "giancucio-tfstate-rg"
 tfstate_storage_account_name = "giancuciotfstatesa"
 tfstate_container_name       = "tfstate"
-key_vault_name               = "giancucioaksdevkv"
+key_vault_name               = "kv-aks-dev-giancucio"
 

@@ -4,8 +4,8 @@ tfstate_resource_group_name  = "giancucio-tfstate-rg"
 tfstate_storage_account_name = "giancuciotfstatesa"
 tfstate_container_name       = "tfstate"
 acr_name                     = "giancucioaksdeveus"
-aks_name                     = "aks-dev-eastus"
-dns_prefix                   = "aks-dev-eastus"
+aks_name                     = "aks-dev-eastus-giancucio"
+dns_prefix                   = "aks-dev-eastus-giancucio"
 system_node_count            = 3
 system_node_vm_size          = "Standard_DS2_v2"
 

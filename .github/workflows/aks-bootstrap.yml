@@ -34,8 +34,8 @@ jobs:
       - name: Get AKS credentials
         run: |
           az aks get-credentials \
-            --resource-group rg-aks-dev-eastus \
-            --name aks-dev-eastus \
+            --resource-group rg-aks-dev-eastus-giancucio \
+            --name aks-dev-eastus-giancucio \
             --overwrite-existing
 
       - name: Apply namespace manifests

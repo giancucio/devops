@@ -41,10 +41,10 @@ variables:
     value: 'environments/dev.tfvars'
 
   - name: aksClusterName
-    value: 'aks-dev-eastus'
+    value: 'aks-dev-eastus-giancucio'
 
   - name: aksResourceGroup
-    value: 'rg-aks-dev-eastus'
+    value: 'rg-aks-dev-eastus-giancucio'
 
 pool:
   vmImage: ubuntu-latest

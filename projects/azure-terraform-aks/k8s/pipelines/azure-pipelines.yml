@@ -12,8 +12,8 @@ pool:
 
 variables:
   azureServiceConnection: 'giancucio3cscwif'
-  aksResourceGroup: 'rg-aks-dev-eastus'
-  aksClusterName: 'aks-dev-eastus'
+  aksResourceGroup: 'rg-aks-dev-eastus-giancucio'
+  aksClusterName: 'aks-dev-eastus-giancucio'
   acrLoginServer: 'giancucioaksdeveus.azurecr.io'
 
 stages:
