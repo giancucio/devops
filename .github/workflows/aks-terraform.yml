@@ -109,7 +109,7 @@ jobs:
     needs: plan
     if: ${{ inputs.operation == 'apply' && inputs.state_migration_complete == true }}
     runs-on: ubuntu-latest
-    environment: aks-${{ inputs.stage }}-apply
+    environment: aks-apply
     env:
       TF_IN_AUTOMATION: true
     steps:
@@ -154,7 +154,7 @@ jobs:
     needs: apply
     if: ${{ inputs.operation == 'apply' && inputs.stage == '04_workload' && inputs.state_migration_complete == true }}
     runs-on: ubuntu-latest
-    environment: aks-04_workload-apply
+    environment: aks-apply
     steps:
       - name: Checkout
         uses: actions/checkout@v4

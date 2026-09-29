@@ -29,7 +29,7 @@ The Azure service connection and state storage settings are configured as pipeli
 
 ## GitHub Actions
 
-The repository also includes [aks-terraform.yml](../../.github/workflows/aks-terraform.yml). Run it manually from the Actions tab and select a stage plus `plan` or `apply`. The Apply job uses a protected GitHub Environment named `aks-<stage>-apply`, so configure required reviewers for `aks-01_foundation-apply`, `aks-02_security-apply`, `aks-03_network-apply`, and `aks-04_workload-apply` in repository settings.
+The repository also includes [aks-terraform.yml](../../.github/workflows/aks-terraform.yml). Run it manually from the Actions tab and select a stage plus `plan` or `apply`. The Apply job uses one protected GitHub Environment named `aks-apply`; configure required reviewers for that environment in repository settings.
 
 Configure these repository secrets for OIDC authentication:
 
