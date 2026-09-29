@@ -1,4 +1,15 @@
 parameters:
+  - name: stageToRun
+    displayName: Parent stage to run
+    type: string
+    default: all
+    values:
+      - all
+      - 01_foundation
+      - 02_security
+      - 03_network
+      - 04_workload
+
   - name: stateMigrationComplete
     displayName: Existing state has been migrated and reviewed
     type: boolean
@@ -41,7 +52,7 @@ pool:
 stages:
   - stage: Foundation
     displayName: 01 Foundation
-    condition: and(succeeded(), eq('${{ parameters.stateMigrationComplete }}', 'true'))
+    condition: or(eq('${{ parameters.stageToRun }}', 'all'), eq('${{ parameters.stageToRun }}', '01_foundation'))
     variables:
       - name: stack
         value: 01_foundation
@@ -55,7 +66,7 @@ stages:
           - template: pipelines/terraform-plan-steps.yml
       - job: Approval
         dependsOn: Plan
-        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('${{ parameters.stateMigrationComplete }}', 'true'))
         pool: server
         timeoutInMinutes: 1440
         steps:
@@ -67,14 +78,14 @@ stages:
               onTimeout: reject
       - job: Apply
         dependsOn: Approval
-        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('${{ parameters.stateMigrationComplete }}', 'true'))
         steps:
           - template: pipelines/terraform-apply-steps.yml
 
   - stage: Security
     displayName: 02 Security
     dependsOn: Foundation
-    condition: and(succeeded(), eq('${{ parameters.stateMigrationComplete }}', 'true'))
+    condition: or(eq('${{ parameters.stageToRun }}', 'all'), eq('${{ parameters.stageToRun }}', '02_security'))
     variables:
       - name: stack
         value: 02_security
@@ -88,7 +99,7 @@ stages:
           - template: pipelines/terraform-plan-steps.yml
       - job: Approval
         dependsOn: Plan
-        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('${{ parameters.stateMigrationComplete }}', 'true'))
         pool: server
         timeoutInMinutes: 1440
         steps:
@@ -100,14 +111,14 @@ stages:
               onTimeout: reject
       - job: Apply
         dependsOn: Approval
-        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('${{ parameters.stateMigrationComplete }}', 'true'))
         steps:
           - template: pipelines/terraform-apply-steps.yml
 
   - stage: Network
     displayName: 03 Network
     dependsOn: Security
-    condition: and(succeeded(), eq('${{ parameters.stateMigrationComplete }}', 'true'))
+    condition: or(eq('${{ parameters.stageToRun }}', 'all'), eq('${{ parameters.stageToRun }}', '03_network'))
     variables:
       - name: stack
         value: 03_network
@@ -121,7 +132,7 @@ stages:
           - template: pipelines/terraform-plan-steps.yml
       - job: Approval
         dependsOn: Plan
-        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('${{ parameters.stateMigrationComplete }}', 'true'))
         pool: server
         timeoutInMinutes: 1440
         steps:
@@ -133,14 +144,14 @@ stages:
               onTimeout: reject
       - job: Apply
         dependsOn: Approval
-        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('${{ parameters.stateMigrationComplete }}', 'true'))
         steps:
           - template: pipelines/terraform-apply-steps.yml
 
   - stage: Workload
     displayName: 04 Workload
     dependsOn: Network
-    condition: and(succeeded(), eq('${{ parameters.stateMigrationComplete }}', 'true'))
+    condition: or(eq('${{ parameters.stageToRun }}', 'all'), eq('${{ parameters.stageToRun }}', '04_workload'))
     variables:
       - name: stack
         value: 04_workload
@@ -154,7 +165,7 @@ stages:
           - template: pipelines/terraform-plan-steps.yml
       - job: Approval
         dependsOn: Plan
-        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('${{ parameters.stateMigrationComplete }}', 'true'))
         pool: server
         timeoutInMinutes: 1440
         steps:
@@ -166,7 +177,7 @@ stages:
               onTimeout: reject
       - job: Apply
         dependsOn: Approval
-        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('${{ parameters.stateMigrationComplete }}', 'true'))
         steps:
           - template: pipelines/terraform-apply-steps.yml
       - job: Bootstrap

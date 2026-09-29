@@ -23,7 +23,7 @@ The previous single-root configuration used the state key `aks.tfstate`. The new
 
 ## Azure DevOps
 
-The pipeline in [azure-pipelines.yml](azure-pipelines.yml) has four sequential stages: Foundation, Security, Network, and Workload. Each stage formats, validates, and plans its own stack, publishes a stack-specific plan, and requires manual approval before applying on `main`. Namespace bootstrap runs after the Workload apply. The pipeline is gated by the `stateMigrationComplete` run parameter, which must remain `false` until the existing state has been split and verified.
+The pipeline in [azure-pipelines.yml](azure-pipelines.yml) has four stages: Foundation, Security, Network, and Workload. The `stageToRun` parameter lets you run all stages or one parent stage standalone. Each selected stage formats, validates, and plans its own stack, publishes a stack-specific plan, and pauses at a manual validation step before applying on `main`. Standalone Security, Network, and Workload runs require the remote-state outputs from prerequisite stacks to already exist. Plans run with `stateMigrationComplete` left `false`; Apply remains blocked until that parameter is set to `true` after the existing state has been split and verified. Namespace bootstrap runs after the Workload apply.
 
 The Azure service connection and state storage settings are configured as pipeline variables. The state storage account and container must already exist, and the service connection needs access to both the state blobs and deployed resources.
 
