@@ -27,6 +27,18 @@ The pipeline in [azure-pipelines.yml](azure-pipelines.yml) has four stages: Foun
 
 The Azure service connection and state storage settings are configured as pipeline variables. The state storage account and container must already exist, and the service connection needs access to both the state blobs and deployed resources.
 
+## GitHub Actions
+
+The repository also includes [aks-terraform.yml](../../.github/workflows/aks-terraform.yml). Run it manually from the Actions tab and select a stage plus `plan` or `apply`. The Apply job uses a protected GitHub Environment named `aks-<stage>-apply`, so configure required reviewers for `aks-01_foundation-apply`, `aks-02_security-apply`, `aks-03_network-apply`, and `aks-04_workload-apply` in repository settings.
+
+Configure these repository secrets for OIDC authentication:
+
+- `AZURE_CLIENT_ID`
+- `AZURE_TENANT_ID`
+- `AZURE_SUBSCRIPTION_ID`
+
+The Azure service principal must have `Storage Blob Data Contributor` on the Terraform state storage account and the required Azure resource permissions. The `apply` operation requires `state_migration_complete=true`; leave it false until the existing state has been migrated and reviewed.
+
 ## Local Checks
 
 Run each command from the selected stack directory. Use that stack's environment file and a unique backend key. For example:
