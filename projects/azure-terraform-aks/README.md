@@ -29,7 +29,7 @@ The Azure service connection and state storage settings are configured as pipeli
 
 ## GitHub Actions
 
-The repository also includes [aks-terraform.yml](../../.github/workflows/aks-terraform.yml). Run it manually from the Actions tab and select a stage plus `plan` or `apply`. The Apply job uses one protected GitHub Environment named `aks-apply`; configure required reviewers for that environment in repository settings.
+The repository also includes [aks-terraform.yml](../../.github/workflows/aks-terraform.yml). Run it manually from the Actions tab and select one stage. The workflow pauses for a manual approval before Plan, runs Plan, then pauses again for approval before Apply. Both gates use one protected GitHub Environment named `aks-apply`; configure required reviewers for that environment in repository settings. Kubernetes namespace bootstrap is separate in [aks-bootstrap.yml](../../.github/workflows/aks-bootstrap.yml), so it does not appear on infrastructure runs.
 
 Configure these repository secrets for OIDC authentication:
 
@@ -37,7 +37,7 @@ Configure these repository secrets for OIDC authentication:
 - `AZURE_TENANT_ID`
 - `AZURE_SUBSCRIPTION_ID`
 
-The Azure service principal must have `Storage Blob Data Contributor` on the Terraform state storage account and the required Azure resource permissions. The `apply` operation requires `state_migration_complete=true`; leave it false until the existing state has been migrated and reviewed.
+The Azure service principal must have `Storage Blob Data Contributor` on the Terraform state storage account and the required Azure resource permissions. Apply requires `state_migration_complete=true`; leave it false until the existing state has been migrated and reviewed.
 
 ## Local Checks
 

@@ -1,0 +1,36 @@
+name: AKS Kubernetes Bootstrap
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  bootstrap:
+    name: Apply Kubernetes namespaces
+    runs-on: ubuntu-latest
+    environment: aks-apply
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Get AKS credentials
+        run: |
+          az aks get-credentials \
+            --resource-group rg-aks-dev-eastus \
+            --name aks-dev-eastus \
+            --overwrite-existing
+
+      - name: Apply namespace manifests
+        run: |
+          kubectl apply -f projects/azure-terraform-aks/k8s/namespaces/
+          kubectl get namespaces -l managed-by=pipeline

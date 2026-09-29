@@ -12,16 +12,8 @@ on:
           - 02_security
           - 03_network
           - 04_workload
-      operation:
-        description: Terraform operation
-        required: true
-        type: choice
-        default: plan
-        options:
-          - plan
-          - apply
       state_migration_complete:
-        description: Confirm existing state has been migrated and reviewed before apply
+        description: Confirm existing state has been migrated and reviewed
         required: true
         type: boolean
         default: false
@@ -45,13 +37,20 @@ env:
   ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
 
 jobs:
+  plan_approval:
+    name: ${{ inputs.stage }} run plan
+    runs-on: ubuntu-latest
+    environment: aks-apply
+    steps:
+      - name: Approve Terraform plan
+        run: echo "Plan approved for ${{ inputs.stage }}"
+
   plan:
     name: ${{ inputs.stage }} plan
+    needs: plan_approval
     runs-on: ubuntu-latest
     env:
       TF_IN_AUTOMATION: true
-    outputs:
-      plan_artifact: ${{ steps.plan_artifact.outputs.name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -96,7 +95,6 @@ jobs:
             -out=tfplan
 
       - name: Publish Terraform plan
-        id: plan_artifact
         uses: actions/upload-artifact@v4
         with:
           name: aks-${{ inputs.stage }}-tfplan-${{ github.run_id }}
@@ -107,7 +105,6 @@ jobs:
   apply:
     name: ${{ inputs.stage }} apply
     needs: plan
-    if: ${{ inputs.operation == 'apply' && inputs.state_migration_complete == true }}
     runs-on: ubuntu-latest
     environment: aks-apply
     env:
@@ -147,33 +144,10 @@ jobs:
 
       - name: Terraform apply
         working-directory: ${{ env.TF_WORKING_DIRECTORY }}
-        run: terraform apply -auto-approve tfplan
-
-  bootstrap:
-    name: Kubernetes namespace bootstrap
-    needs: apply
-    if: ${{ inputs.operation == 'apply' && inputs.stage == '04_workload' && inputs.state_migration_complete == true }}
-    runs-on: ubuntu-latest
-    environment: aks-apply
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Azure login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Get AKS credentials
         run: |
-          az aks get-credentials \
-            --resource-group rg-aks-dev-eastus \
-            --name aks-dev-eastus \
-            --overwrite-existing
+          if [ "${{ inputs.state_migration_complete }}" != "true" ]; then
+            echo "state_migration_complete must be true before Apply."
+            exit 1
+          fi
 
-      - name: Apply namespace manifests
-        run: |
-          kubectl apply -f projects/azure-terraform-aks/k8s/namespaces/
-          kubectl get namespaces -l managed-by=pipeline
+          terraform apply -auto-approve tfplan
