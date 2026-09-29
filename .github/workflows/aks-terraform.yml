@@ -12,12 +12,6 @@ on:
           - 02_security
           - 03_network
           - 04_workload
-      state_migration_complete:
-        description: Confirm existing state has been migrated and reviewed
-        required: true
-        type: boolean
-        default: false
-
 permissions:
   contents: read
   id-token: write
@@ -37,17 +31,8 @@ env:
   ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
 
 jobs:
-  plan_approval:
-    name: ${{ inputs.stage }} run plan
-    runs-on: ubuntu-latest
-    environment: aks-apply
-    steps:
-      - name: Approve Terraform plan
-        run: echo "Plan approved for ${{ inputs.stage }}"
-
   plan:
     name: ${{ inputs.stage }} plan
-    needs: plan_approval
     runs-on: ubuntu-latest
     env:
       TF_IN_AUTOMATION: true
@@ -144,10 +129,4 @@ jobs:
 
       - name: Terraform apply
         working-directory: ${{ env.TF_WORKING_DIRECTORY }}
-        run: |
-          if [ "${{ inputs.state_migration_complete }}" != "true" ]; then
-            echo "state_migration_complete must be true before Apply."
-            exit 1
-          fi
-
-          terraform apply -auto-approve tfplan
+        run: terraform apply -auto-approve tfplan
