@@ -138,7 +138,7 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
 
       - name: Download Terraform plan
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: aks-${{ inputs.stage }}-tfplan-${{ github.run_id }}
           path: ${{ env.TF_WORKING_DIRECTORY }}
